@@ -9,7 +9,7 @@ ROOT.gROOT.SetBatch(True)
 if __name__ == "__main__":
     
     #input root file containing all the efficiencies
-    test_file = 'FitForTest/TnP_MC_NUM_hlt_Mu17_Mu8_OR_TkMu8_leg8_DEN_LooseIDnISO_PAR_pt_eta.root'
+    test_file = '/afs/cern.ch/work/g/gaperrin/public/TnP_SFfromFitToolSamples/FitForTest/TnP_MC_NUM_hlt_Mu17_Mu8_OR_TkMu8_leg8_DEN_LooseIDnISO_PAR_pt_eta.root'
     #path where all the plots are going to be saved
     plot_path = '/afs/cern.ch/work/g/gaperrin/private/TnP/TnP_SFfromFitTool/CMSSW_9_2_4/src/MuonAnalysis/TagAndProbe/test/zmumu/TnP_SFfromFitTool'
 
@@ -21,9 +21,11 @@ if __name__ == "__main__":
     hp = HistoPloter(plot_path)
 
     ##Plot add the fits
-    #hp.PlotFitList(effList)
+    hp.PlotFitList(effList)
 
     #Make all 1D efficiency plots
     hp.PlotEff1D([effList])
+    
+    #Make 1D efficiency plots for multiple sample (not yet implemented)
     #hp.PlotEff1D([effList,effList])
 
