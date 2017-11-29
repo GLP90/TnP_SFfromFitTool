@@ -73,8 +73,8 @@ class HistoPloter:
 
         #Start by creating directory if not existing
         #directory = self.CreateOutputFolder('%s/%s/%s'%('Plots/Fits',eff.type_.replace(' ',''),eff.name.replace('&','and'),))
-        directory = self.CreateOutputFolder('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
-        directory = self.FormatOutputPath(directory)
+        directory = self.FormatOutputPath('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
+        directory = self.CreateOutputFolder(directory)
 
         print 'eff.hpassing is', eff.hpassing
         print 'eff.funcpassing is', eff.funcpassing
@@ -83,29 +83,63 @@ class HistoPloter:
 
         nbin = 0 
         print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
+
+
+
         for hp, fp, hf, ff in zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing):
             nbin += 1
             print 'nbin is', nbin
             #Draw passing
             c = ROOT.TCanvas('c','c')
             c.cd()
+
             hp.Draw()
             fp.Draw('same')
+            tl = ROOT.TLatex(110,0.1*hp.getYAxisMax(), '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4))
+            print '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4)
+            tl.Draw('same')
             c.SaveAs(directory+'/pass_%i.pdf'%nbin)
             c.SaveAs(directory+'/pass_%i.png'%nbin)
+            c.SaveAs(directory+'/pass_%i.root'%nbin)
 
             #Draw failing
             c = ROOT.TCanvas('c','c')
             c.cd()
             hf.Draw()
             ff.Draw('same')
+            tl = ROOT.TLatex(110,0.1*hf.getYAxisMax(), '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4))
+            print '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4)
+            tl.Draw('same')
             c.SaveAs(directory+'/fail_%i.pdf'%nbin)
             c.SaveAs(directory+'/fail_%i.png'%nbin)
+            c.SaveAs(directory+'/fail_%i.root'%nbin)
 
     def PlotFitList(self, effList):
         '''Plot and save fits for a list of efficiencies'''
         for eff in effList:
             self.PlotFit(eff)
+
+    def CheckFit(self, eff):
+        '''Plot and save fits for a given efficiency'''
+
+        #Start by creating directory if not existing
+        #directory = self.CreateOutputFolder('%s/%s/%s'%('Plots/Fits',eff.type_.replace(' ',''),eff.name.replace('&','and'),))
+        directory = self.FormatOutputPath('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
+        directory = self.CreateOutputFolder(directory)
+
+        print 'eff.hpassing is', eff.hpassing
+        print 'eff.funcpassing is', eff.funcpassing
+        print 'eff.hfail is', eff.hfailing
+        print 'eff.funcfail is', eff.funcfailing
+
+        #print 'chi2', eff.funcfailing.chiSquare(eff.hfailing,4)
+        #print 'chi2', eff.funcpassing.chiSquare(eff.hpassing,4)
+
+
+    def CheckFitList(self, effList):
+        '''Check if the fits are good enough (with several methods (to be built))'''
+        for eff in effList:
+            self.CheckFit(eff)
 
     def PlotEff1D(self, effList):
         '''Plot 1D efficiency distributions. Here effList is a container of efficiency lists. Each list should correspond to another sample. e.g. effList[0] a list of data efficiency, effList[1] a list of MC1 efficiency,  effList[2] a list of MC2 efficiency. All efficiencies will be ploted on the same canvas. The first list i.e. effList[0] will be used as reference in the ratio plot'''

@@ -11,6 +11,8 @@ class HistoReader:
     def __init__(self, type_):
         #choose type to indentify the data/sample. e.g.: type = '2016 RunB', type = 'MC 92X'. Will be used for directory names and legends
         self.type_ = type_
+        self.rooworksp = []
+        self.fitResult = []
         pass
 
     def readfile(self, inputTree):
@@ -67,6 +69,9 @@ class HistoReader:
                     continue
 
                 cEff = effdir.Get(effkey)#TCanvas containing efficiency distribution
+                print '################'
+                print type(cEff)
+                print '##############33'
                 hEff = cEff.GetPrimitive('hxy_fit_eff')
                 #cEff.GetListOfPrimitives().ls()
                 #print 'heff is', hEff
@@ -126,6 +131,9 @@ class HistoReader:
                     canvDir = rootoutput.GetDirectory(key.GetTitle()+"/"+subkey.GetName())
                     canv = canvDir.Get('fit_canvas')
                     
+                    self.fitResult.append(canvDir.Get('fitresults'))
+                    self.rooworksp.append(canvDir.Get('w'))
+
                     nbin = self.getBinNumber(subkey.GetName())
                     self.histoFromCanvas(canv, xBin)
                     
@@ -157,7 +165,9 @@ class HistoReader:
                     ##canvDir = rootoutput.GetDirectory(key.GetTitle()+"/"+subkey.GetName())
                 self.orderFitHisto()
                 #self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, effdir.Get(effkey), self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing))
-                self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, hEff, self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing))
+                self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, hEff, self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing, self.fitResult, self.rooworksp))
+
+
 
             #self.effList.append(self.eff)
             key = nextkey.Next()
@@ -240,6 +250,7 @@ class HistoReader:
             elif i == 2: 
                 #fitfunc = pad.GetPrimitive('pdfFail_Norm[mass]_Comp[backgroundFail]')
                 fitfunc = pad.GetPrimitive('pdfFail_Norm[mass]')
+            print fitfunc
             fitList.append(hist)
             fitList.append(fitfunc)
         #print 'fitList is', fitList
