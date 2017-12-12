@@ -5,6 +5,10 @@ import sys
 import numpy as np
 import copy as copy
 
+import array
+
+ROOT.gROOT.LoadMacro('include/GoodnessOfFit.cc+')
+
 class HistoPloter:
     '''Plot the relevant histogram, fits'''
 
@@ -12,7 +16,7 @@ class HistoPloter:
         self.outputpath = outputpath
         self.effUpRange = 1.05
         self.effDownRange = 0.8
-    
+        
 
     def CreateOutputFolder(self, subfolder = None):
         '''Create output path to store the files if not existing'''
@@ -84,36 +88,134 @@ class HistoPloter:
         nbin = 0 
         print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
 
-
-
-        for hp, fp, hf, ff in zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing):
+        for w in eff.rooworksp:
             nbin += 1
-            print 'nbin is', nbin
-            #Draw passing
-            c = ROOT.TCanvas('c','c')
-            c.cd()
+            mass = w.var('mass')
+            data = w.data('data')
+            
+            for ty in ['Pass','Fail']:
+                frame   = mass.frame()
+                redData = data.reduce(ROOT.RooArgSet(mass), "_efficiencyCategory_==%d"%(1 if ty == 'Pass' else 0))
+                pdf     = w.pdf('pdf'+ty)
+                redData.plotOn(frame)
+                pdf    .plotOn(frame)
+                
+                pullHist = frame.pullHist()
+                hPullHist=ROOT.TGraph(pullHist)
+                x = ROOT.Double(0); y = ROOT.Double(0)
+                ys = []
+                for i in range(0, pullHist.GetN()):
+                    pullHist.GetPoint(i, x, y)
+                    ys.append(ROOT.Double(y))
+                
+                c = ROOT.TCanvas('c','c')
+                c.cd()
+                frame.Draw()
 
-            hp.Draw()
-            fp.Draw('same')
-            tl = ROOT.TLatex(110,0.1*hp.getYAxisMax(), '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4))
-            print '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4)
-            tl.Draw('same')
-            c.SaveAs(directory+'/pass_%i.pdf'%nbin)
-            c.SaveAs(directory+'/pass_%i.png'%nbin)
-            c.SaveAs(directory+'/pass_%i.root'%nbin)
+                pullFrame = mass.frame()
+                pullFrame.addPlotable(pullHist)
 
-            #Draw failing
-            c = ROOT.TCanvas('c','c')
-            c.cd()
-            hf.Draw()
-            ff.Draw('same')
-            tl = ROOT.TLatex(110,0.1*hf.getYAxisMax(), '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4))
-            print '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4)
-            tl.Draw('same')
-            c.SaveAs(directory+'/fail_%i.pdf'%nbin)
-            c.SaveAs(directory+'/fail_%i.png'%nbin)
-            c.SaveAs(directory+'/fail_%i.root'%nbin)
 
+                maxPull = max(ys)
+                minPull = min(ys)
+
+                maxPull = max(map(abs, [maxPull,minPull]))
+
+                KS=ROOT.EvaluateADDistance(pdf, data, mass, True)
+                AD=ROOT.EvaluateADDistance(pdf, data, mass, False)
+
+
+                tl1 = ROOT.TLatex(110,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
+                tl2 = ROOT.TLatex(110,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
+                tl3 = ROOT.TLatex(110,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
+                tl4 = ROOT.TLatex(110,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
+
+                tl1.Draw('same')
+                tl2.Draw('same')
+                tl3.Draw('same')
+                tl4.Draw('same')
+
+                c.SaveAs(directory+'/%s_%i.pdf' %(ty, nbin))
+                c.SaveAs(directory+'/%s_%i.png' %(ty, nbin))
+                c.SaveAs(directory+'/%s_%i.root'%(ty, nbin))
+                
+                
+
+
+#         for hp, fp, hf, ff, w in zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing, eff.rooworksp):
+#             nbin += 1
+#             print 'nbin is', nbin
+#             mass = w.var('mass')
+#             data = w.data('data')     
+
+#             framePass = mass.frame()
+#             frameFail = mass.frame()
+
+#             #Draw passing
+#             c = ROOT.TCanvas('c','c')
+#             c.cd()
+#             hp.Draw()
+#             fp.Draw('same')
+            
+#             dataPass=data.reduce(ROOT.RooArgSet(mass), "_efficiencyCategory_==1")
+#             pdfPass =w.pdf('pdfPass')
+#             dataPass.plotOn(framePass)
+#             pdfPass.plotOn(framePass)
+#             print hp
+
+#             maxPull = max( map( abs, [framePass.pullHist().GetMaximum(),framePass.pullHist().GetMinimum()]))
+#             print maxPull
+#             print hp.getYAxisMax()
+# #            tl = ROOT.TLatex(110,0.1*hp.getYAxisMax(), '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4))
+#             tl = ROOT.TLatex(110,0.1*hp.getYAxisMax(), '#chi^{2}/ndof = %4.2f'%framePass.chiSquare())
+
+#             print 0.1*hp.getYAxisMax()
+#             tl = ROOT.TLatex(110,0.1*hp.getYAxisMax(), 'maxPull = %4.2f'%maxPull)
+#             print '#chi^{2}/4 = %4.2f'%fp.chiSquare(hp,4)
+#             tl.Draw('same')
+#             c.SaveAs(directory+'/pass_%i.pdf'%nbin)
+#             c.SaveAs(directory+'/pass_%i.png'%nbin)
+#             c.SaveAs(directory+'/pass_%i.root'%nbin)
+
+
+#             framePull = mass.frame()
+#             pull = framePass.pullHist()
+#             framePull.addPlotable(pull,'P')
+
+            
+#             c2 = ROOT.TCanvas('c2','c2')
+#             framePull.Draw()
+#             c2.SaveAs(directory+'/pass_pull%i.png'%nbin)
+#             print 'maximum and minimum are', 
+#             for i in pull.GetX(): print i,
+
+#             #Draw failing
+#             c = ROOT.TCanvas('c','c')
+#             c.cd()
+#             hf.Draw()
+#             ff.Draw('same')
+#             dataFail=data.reduce(ROOT.RooArgSet(mass), "_efficiencyCategory_==0")
+#             pdfFail = w.pdf('pdfFail')
+#             dataFail.plotOn(frameFail)
+#             pdfFail .plotOn(frameFail)
+# #            tl = ROOT.TLatex(110,0.1*hf.getYAxisMax(), '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4))
+#             pull = frameFail.pullHist()
+#             mn = ROOT.TMath.LocMin( pull.GetN(), pull.GetX())
+#             mx = ROOT.TMath.LocMax( pull.GetN(), pull.GetX())
+
+#             print 'maximum and minimum are', mn, mx, pull.GetN()
+#             for i in pull.GetX(): print i,
+
+
+#             maxPull = max( map( lambda x : abs(pull.GetX()[x]), [mn, mx] ))
+#             tl = ROOT.TLatex(110,0.1*hf.getYAxisMax(), '#chi^{2}/ndof = %4.2f'%frameFail.chiSquare())
+#             tl = ROOT.TLatex(110,0.2*hf.getYAxisMax(), 'maxPull = %4.2f'%maxPull)
+#             print '#chi^{2}/4 = %4.2f'%ff.chiSquare(hf,4)
+#             tl.Draw('same')
+#             c.SaveAs(directory+'/fail_%i.pdf'%nbin)
+#             c.SaveAs(directory+'/fail_%i.png'%nbin)
+#             c.SaveAs(directory+'/fail_%i.root'%nbin)
+#             print kk
     def PlotFitList(self, effList):
         '''Plot and save fits for a list of efficiencies'''
         for eff in effList:
