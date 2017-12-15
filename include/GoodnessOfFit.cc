@@ -1,5 +1,7 @@
 // Taken from the HiggsCombineTool. All the credits to the authors
 
+#ifndef GOODNESS_H
+#define GOODNESS_H
 
 #include <RooRealVar.h>
 #include <RooAbsPdf.h>
@@ -84,3 +86,5 @@ Double_t EvaluateADDistance(RooAbsPdf& pdf, RooAbsData& data, RooRealVar& observ
     // }
     return test_stat;
 }
+
+#endif

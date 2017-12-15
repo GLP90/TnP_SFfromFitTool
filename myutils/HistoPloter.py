@@ -4,10 +4,14 @@ import os
 import sys
 import numpy as np
 import copy as copy
+import math
 
 import array
 
 ROOT.gROOT.LoadMacro('include/GoodnessOfFit.cc+')
+ROOT.gROOT.LoadMacro('include/KSandADWithToys.cc+')
+ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
+
 
 class HistoPloter:
     '''Plot the relevant histogram, fits'''
@@ -16,6 +20,10 @@ class HistoPloter:
         self.outputpath = outputpath
         self.effUpRange = 1.05
         self.effDownRange = 0.8
+        self.KSs      = [] 
+        self.ADs      = [] 
+        self.maxPulls = []
+        self.chi2s    = []
         
 
     def CreateOutputFolder(self, subfolder = None):
@@ -121,14 +129,30 @@ class HistoPloter:
 
                 maxPull = max(map(abs, [maxPull,minPull]))
 
-                KS=ROOT.EvaluateADDistance(pdf, data, mass, True)
-                AD=ROOT.EvaluateADDistance(pdf, data, mass, False)
+                KS=ROOT.EvaluateADDistance(pdf, redData, mass, True)
+                AD=ROOT.EvaluateADDistance(pdf, redData, mass, False)
 
+                # model = ROOT.RooStats.ModelConfig()
+                # model.SetPdf(pdf)
+                # calculator = ROOT.RooStats.AsymptoticCalculator(data, model, model)
+                
+
+                # KS = ROOT.Double(0.)
+                # AD = ROOT.Double(0.)
+                
+                # ROOT.KSandADWithToys(KS, AD, redData, pdf, mass)
+                
+
+                self.KSs.append(KS*math.sqrt(data.numEntries()))
+                self.ADs.append(AD)
 
                 tl1 = ROOT.TLatex(110,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
                 tl2 = ROOT.TLatex(110,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
                 tl3 = ROOT.TLatex(110,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
                 tl4 = ROOT.TLatex(110,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
+
+                self.maxPulls.append(maxPull)
+                self.chi2s   .append(frame.chiSquare())
 
                 tl1.Draw('same')
                 tl2.Draw('same')
