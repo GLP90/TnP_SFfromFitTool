@@ -24,7 +24,7 @@ class HistoPloter:
         self.ADs      = [] 
         self.maxPulls = []
         self.chi2s    = []
-        
+        self.sFactors = []
 
     def CreateOutputFolder(self, subfolder = None):
         '''Create output path to store the files if not existing'''
@@ -82,7 +82,7 @@ class HistoPloter:
 
     def PlotFit(self, eff):
         '''Plot and save fits for a given efficiency'''
-
+        print 'we are here'
         #Start by creating directory if not existing
         #directory = self.CreateOutputFolder('%s/%s/%s'%('Plots/Fits',eff.type_.replace(' ',''),eff.name.replace('&','and'),))
         directory = self.FormatOutputPath('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
@@ -92,18 +92,29 @@ class HistoPloter:
         print 'eff.funcpassing is', eff.funcpassing
         print 'eff.hfail is', eff.hfailing
         print 'eff.funcfail is', eff.funcfailing
-
+        print 'eff.rooworksp is', eff.rooworksp
         nbin = 0 
-        print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
+        if eff.hpassing:
+            print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
 
         for w in eff.rooworksp:
+            if not w: continue
             nbin += 1
             mass = w.var('mass')
             data = w.data('data')
             
+            KS_pf      = []
+            AD_pf      = []
+            maxPull_pf = []
+            chi_pf     = []
+            sFactor_pf = []
+            
             for ty in ['Pass','Fail']:
                 frame   = mass.frame()
                 redData = data.reduce(ROOT.RooArgSet(mass), "_efficiencyCategory_==%d"%(1 if ty == 'Pass' else 0))
+                redData.Print()
+                hist = ROOT.RooAbsData.createHistogram(redData, ty+'Hist',mass)
+
                 pdf     = w.pdf('pdf'+ty)
                 redData.plotOn(frame)
                 pdf    .plotOn(frame)
@@ -112,10 +123,13 @@ class HistoPloter:
                 hPullHist=ROOT.TGraph(pullHist)
                 x = ROOT.Double(0); y = ROOT.Double(0)
                 ys = []
-                for i in range(0, pullHist.GetN()):
+                ys2= []
+
+                for i in range(1, pullHist.GetN()+1):
                     pullHist.GetPoint(i, x, y)
                     ys.append(ROOT.Double(y))
-                
+                    ys2.append(0 if not hist.GetBinContent(i) else ROOT.Double(y)/math.sqrt(hist.GetBinContent(i)))
+
                 c = ROOT.TCanvas('c','c')
                 c.cd()
                 frame.Draw()
@@ -127,7 +141,10 @@ class HistoPloter:
                 maxPull = max(ys)
                 minPull = min(ys)
 
+                maxSFac = max(ys2); minSFac=min(ys2)
+
                 maxPull = max(map(abs, [maxPull,minPull]))
+                sFactor = max(map(abs, [maxSFac,minSFac]))
 
                 KS=ROOT.EvaluateADDistance(pdf, redData, mass, True)
                 AD=ROOT.EvaluateADDistance(pdf, redData, mass, False)
@@ -143,28 +160,36 @@ class HistoPloter:
                 # ROOT.KSandADWithToys(KS, AD, redData, pdf, mass)
                 
 
-                self.KSs.append(KS*math.sqrt(data.numEntries()))
-                self.ADs.append(AD)
 
+                
                 tl1 = ROOT.TLatex(110,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
                 tl2 = ROOT.TLatex(110,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
                 tl3 = ROOT.TLatex(110,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
                 tl4 = ROOT.TLatex(110,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
-
-                self.maxPulls.append(maxPull)
-                self.chi2s   .append(frame.chiSquare())
+                tl5 = ROOT.TLatex(110,0.30*frame.GetMaximum(), 'S-factor = %4.2f'%sFactor )
+                
+                KS_pf     .append(KS*math.sqrt(data.numEntries()))     
+                AD_pf     .append(AD)                                  
+                maxPull_pf.append(maxPull)
+                chi_pf    .append(frame.chiSquare())
+                sFactor_pf.append(sFactor_pf)
 
                 tl1.Draw('same')
                 tl2.Draw('same')
                 tl3.Draw('same')
                 tl4.Draw('same')
+                tl5.Draw('same')
 
                 c.SaveAs(directory+'/%s_%i.pdf' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.png' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.root'%(ty, nbin))
                 
                 
-
+            self.KSs     .append(max(KS_pf))
+            self.ADs     .append(max(AD_pf))
+            self.maxPulls.append(max(maxPull_pf))
+            self.chi2s   .append(max(chi_pf))
+            self.sFactors.append(max(sFactor_pf))
 
 #         for hp, fp, hf, ff, w in zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing, eff.rooworksp):
 #             nbin += 1
@@ -242,6 +267,7 @@ class HistoPloter:
 #             print kk
     def PlotFitList(self, effList):
         '''Plot and save fits for a list of efficiencies'''
+        print 'efflist is', effList
         for eff in effList:
             self.PlotFit(eff)
 
@@ -270,10 +296,12 @@ class HistoPloter:
     def PlotEff1D(self, effList):
         '''Plot 1D efficiency distributions. Here effList is a container of efficiency lists. Each list should correspond to another sample. e.g. effList[0] a list of data efficiency, effList[1] a list of MC1 efficiency,  effList[2] a list of MC2 efficiency. All efficiencies will be ploted on the same canvas. The first list i.e. effList[0] will be used as reference in the ratio plot'''
 
+        if len(effList[0]) == 0: return
+
         effFolder = effList[0][0].type_
         for effL in effList[1:]:
             effFolder+= '_AND_%s'%effL[0].type_
-        
+        print '#######', effFolder
         effFolder = self.FormatOutputPath(effFolder)
         
         #print 'effFolder is', effFolder
@@ -284,6 +312,7 @@ class HistoPloter:
 
         cDict = {} #Dictionnary of canvas
         for eff in effList[0]:
+            if not eff.heff: continue
             effname = eff.name
             c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
 
