@@ -11,6 +11,8 @@ class HistoReader:
     def __init__(self, type_):
         #choose type to indentify the data/sample. e.g.: type = '2016 RunB', type = 'MC 92X'. Will be used for directory names and legends
         self.type_ = type_
+        self.rooworksp = []
+        self.fitResult = []
         pass
 
     def readfile(self, inputTree):
@@ -24,12 +26,16 @@ class HistoReader:
             if key.IsFolder() != 1:
                 continue
             self.rawname = key.GetTitle()
-            print 'rawname is', self.rawname
 
             directory = rootoutput.GetDirectory(key.GetTitle())
             effdir = directory.GetDirectory('fit_eff_plots')
-            effList = effdir.GetListOfKeys()
-            effKey = ROOT.TIter(effList)
+            if effdir:
+                effList = effdir.GetListOfKeys()
+                effKey = ROOT.TIter(effList)
+                effkey = effKey.Next()
+            else:
+                print '[W] fit_eff_plots is not in the file'
+                effkey = False
             ##Check if 1D efficiency
             #if len(effList) == 1:
             #    self.eff = Efficiency(key.GetTitle())
@@ -44,7 +50,7 @@ class HistoReader:
             #    #eff = Efficiency('dummy',2)
 
             #add all the efficieny ditribution in the efficiency 
-            effkey = effKey.Next()
+
             #efflist = []
             #AllEff = {}
             AllEffList = []
@@ -63,7 +69,7 @@ class HistoReader:
 
             for effkey in AllEffList:
                 if not effkey.startswith(self.xpar+'_PLOT'):
-                    print 'skiped key', effkey
+                    #print 'skiped key', effkey
                     continue
 
                 cEff = effdir.Get(effkey)#TCanvas containing efficiency distribution
@@ -76,7 +82,6 @@ class HistoReader:
 
                 ###
                 #Write info about yparams bins
-                print 'effkey is', effkey
                 yParBinInfo = effkey.split('PLOT')[1]
                 yBinList = []
                 for y in self.ypars:
@@ -113,7 +118,7 @@ class HistoReader:
                             yBinNotFound = True
 
                     if yBinNotFound: 
-                        print 'skiped', subkey.GetName()
+                        #print 'skiped', subkey.GetName()
                         subkey = keyInDir.Next()
                         continue
                   
@@ -126,6 +131,9 @@ class HistoReader:
                     canvDir = rootoutput.GetDirectory(key.GetTitle()+"/"+subkey.GetName())
                     canv = canvDir.Get('fit_canvas')
                     
+                    self.fitResult.append(canvDir.Get('fitresults'))
+                    self.rooworksp.append(canvDir.Get('w'))
+
                     nbin = self.getBinNumber(subkey.GetName())
                     self.histoFromCanvas(canv, xBin)
                     
@@ -157,7 +165,24 @@ class HistoReader:
                     ##canvDir = rootoutput.GetDirectory(key.GetTitle()+"/"+subkey.GetName())
                 self.orderFitHisto()
                 #self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, effdir.Get(effkey), self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing))
-                self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, hEff, self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing))
+                self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, hEff, self.xpar, self.ypars, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing, self.fitResult, self.rooworksp))
+            if len(AllEffList) == 0:
+                # try at least to recover the workspaces
+                for subkey in directory.GetListOfKeys():
+                    if not subkey.IsFolder(): continue
+                    print 'here'
+                    print subkey.GetName()
+                    subdir =  subkey.ReadObj()
+                    canv=subdir.Get('fit_canvas')
+                    self.fitResult.append(subdir.Get('fitresults'))
+                    worksp = subdir.Get('w') if subdir.Get('w') else subdir.Get('')
+                    for key2 in subdir.GetListOfKeys():
+                        if (key2.InheritsFrom('RooWorkspace')): worksp = key2.ReadObj()
+                    self.rooworksp.append(worksp)
+                    print 'rooworkspace', subdir.Get('w')
+                        
+                    self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, None, None, None, None, None, None, None, self.fitResult, self.rooworksp))
+
 
             #self.effList.append(self.eff)
             key = nextkey.Next()
@@ -172,7 +197,7 @@ class HistoReader:
             except ValueError: 
                 print '@ERROR: the nbin is not a string. Aborting'
             binlist.append(nbin)
-        print 'binlist is', binlist 
+
         return nbin
 
     def EffRemover(self, AllEffList):
@@ -188,13 +213,13 @@ class HistoReader:
         #print 'most commond is', counter.most_common[1][0][1]
         #x = set(keyPrefixList)
         #print 'x is', x 
-        self.xpar  = min(set(keyPrefixList), key=keyPrefixList.count)
-        print 'xpar is', self.xpar
-        print 'keyPrefixList are ', set(keyPrefixList)
-        #self.ypars = set(keyPrefixList).remove(self.xpar)
-        self.ypars = set(keyPrefixList)
-        self.ypars.remove(self.xpar)
-        print 'ypars are', self.ypars
+        if len(keyPrefixList) > 0:
+            self.xpar  = min(set(keyPrefixList), key=keyPrefixList.count)
+            self.ypars = set(keyPrefixList)
+            self.ypars.remove(self.xpar)
+        else: 
+            self.xpar = 0 
+            self.ypars = []
 
         ##print 'occurence is', xvar 
         #for key in AllEffDic.keys():
@@ -221,11 +246,11 @@ class HistoReader:
 
         fitList = []
         for i in range(1,3):
-            print 'canvas name is', canvas.GetName()
+            #print 'canvas name is', canvas.GetName()
             #print 'nbin is', nbin
             pad = canvas.GetPad(i)
             primList = pad.GetListOfPrimitives()
-            print primList
+            #print primList
             primKey = ROOT.TIter(primList)
             prim = primKey.Next()
 
