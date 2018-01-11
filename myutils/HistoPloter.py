@@ -36,6 +36,8 @@ class HistoPloter:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
+        os.system('cp include/index.php %s'%directory)
+
         return directory
 
     def FormatOutputPath(self, path):
@@ -88,11 +90,26 @@ class HistoPloter:
         directory = self.FormatOutputPath('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
         directory = self.CreateOutputFolder(directory)
 
+
+        # fit diagnostics in a different subdirectory 
+        directoryDiag = self.FormatOutputPath('%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name))
+        directoryDiag = self.CreateOutputFolder(directoryDiag)
+
+
+        directories = {}
+
+        directories['Good'] = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Good'))
+        directories['Good'] = self.CreateOutputFolder(directories['Good'])
+        directories['Med']  = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Med'))
+        directories['Med']  = self.CreateOutputFolder(directories['Med'])
+        directories['Bad']  = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Bad'))
+        directories['Bad']  = self.CreateOutputFolder(directories['Bad'])
+
         print 'eff.hpassing is', eff.hpassing
         print 'eff.funcpassing is', eff.funcpassing
         print 'eff.hfail is', eff.hfailing
         print 'eff.funcfail is', eff.funcfailing
-        print 'eff.rooworksp is', eff.rooworksp
+        print 'eff.rooworksp is', eff.rooworksp     
         nbin = 0 
         if eff.hpassing:
             print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
@@ -160,13 +177,14 @@ class HistoPloter:
                 # ROOT.KSandADWithToys(KS, AD, redData, pdf, mass)
                 
 
-
+                # check whether the tnp is on Z or J/psi
+                latPosition = 110 if frame.GetXaxis().GetXmax() > 10 else 3.15
                 
-                tl1 = ROOT.TLatex(110,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
-                tl2 = ROOT.TLatex(110,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
-                tl3 = ROOT.TLatex(110,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
-                tl4 = ROOT.TLatex(110,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
-                tl5 = ROOT.TLatex(110,0.30*frame.GetMaximum(), 'S-factor = %4.2f'%sFactor )
+                tl1 = ROOT.TLatex(latPosition,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
+                tl2 = ROOT.TLatex(latPosition,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
+                tl3 = ROOT.TLatex(latPosition,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
+                tl4 = ROOT.TLatex(latPosition,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
+                tl5 = ROOT.TLatex(latPosition,0.30*frame.GetMaximum(), 'S-factor = %4.2f'%sFactor )
                 
                 KS_pf     .append(KS*math.sqrt(data.numEntries()))     
                 AD_pf     .append(AD)                                  
@@ -183,7 +201,16 @@ class HistoPloter:
                 c.SaveAs(directory+'/%s_%i.pdf' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.png' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.root'%(ty, nbin))
-                
+
+            # move fits to the diagnostic folders :D
+            fom = max(maxPull_pf)
+            if   (fom < 2) : diagLabel = 'Good'
+            elif (fom < 3) : diagLabel = 'Med'
+            else           : diagLabel = 'Bad'
+
+            for ty in 'Pass,Fail'.split(','):
+                for ext in 'root,png,pdf'.split(','):
+                    os.system('cp %s %s'%(directory+'/%s_%i.%s'%(ty,nbin,ext), directories[diagLabel]))
                 
             self.KSs     .append(max(KS_pf))
             self.ADs     .append(max(AD_pf))
