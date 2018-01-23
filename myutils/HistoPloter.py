@@ -7,6 +7,8 @@ import copy as copy
 import math
 
 import array
+import FitDiagnostics
+
 
 ROOT.gROOT.LoadMacro('include/GoodnessOfFit.cc+')
 ROOT.gROOT.LoadMacro('include/KSandADWithToys.cc+')
@@ -35,6 +37,8 @@ class HistoPloter:
 
         if not os.path.exists(directory):
             os.makedirs(directory)
+
+        os.system('cp include/index.php %s'%directory)
 
         return directory
 
@@ -88,11 +92,26 @@ class HistoPloter:
         directory = self.FormatOutputPath('%s/%s/%s'%('Plots/Fits',eff.type_,eff.name))
         directory = self.CreateOutputFolder(directory)
 
+
+        # fit diagnostics in a different subdirectory 
+        directoryDiag = self.FormatOutputPath('%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name))
+        directoryDiag = self.CreateOutputFolder(directoryDiag)
+
+
+        directories = {}
+
+        directories['Good'] = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Good'))
+        directories['Good'] = self.CreateOutputFolder(directories['Good'])
+        directories['Med']  = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Med'))
+        directories['Med']  = self.CreateOutputFolder(directories['Med'])
+        directories['Bad']  = self.FormatOutputPath('%s/%s/%s/%s'%('Plots/FitDiagnostic',eff.type_,eff.name,'Bad'))
+        directories['Bad']  = self.CreateOutputFolder(directories['Bad'])
+
         print 'eff.hpassing is', eff.hpassing
         print 'eff.funcpassing is', eff.funcpassing
         print 'eff.hfail is', eff.hfailing
         print 'eff.funcfail is', eff.funcfailing
-        print 'eff.rooworksp is', eff.rooworksp
+        print 'eff.rooworksp is', eff.rooworksp     
         nbin = 0 
         if eff.hpassing:
             print 'len is', len(zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing))
@@ -102,13 +121,16 @@ class HistoPloter:
             nbin += 1
             mass = w.var('mass')
             data = w.data('data')
+
+            results = {}
+            # KS_pf      = []
+            # AD_pf      = []
+            # maxPull_pf = []
+            # chi_pf     = []
+            # sFactor_pf = []
             
-            KS_pf      = []
-            AD_pf      = []
-            maxPull_pf = []
-            chi_pf     = []
-            sFactor_pf = []
-            
+
+
             for ty in ['Pass','Fail']:
                 frame   = mass.frame()
                 redData = data.reduce(ROOT.RooArgSet(mass), "_efficiencyCategory_==%d"%(1 if ty == 'Pass' else 0))
@@ -121,14 +143,27 @@ class HistoPloter:
                 
                 pullHist = frame.pullHist()
                 hPullHist=ROOT.TGraph(pullHist)
+                
+                resHist  = frame.residHist()
+                hResHist = ROOT.TGraph(resHist)
+
                 x = ROOT.Double(0); y = ROOT.Double(0)
+                x2 = ROOT.Double(0); y2 = ROOT.Double(0)
                 ys = []
                 ys2= []
 
+                sumRes   = 0
+                integral = 0
+
                 for i in range(1, pullHist.GetN()+1):
                     pullHist.GetPoint(i, x, y)
+                    resHist.GetPoint(i,x2,y2)
+                    sumRes = sumRes + abs(y2)
+                    integral = integral + hist.GetBinContent(i)
                     ys.append(ROOT.Double(y))
                     ys2.append(0 if not hist.GetBinContent(i) else ROOT.Double(y)/math.sqrt(hist.GetBinContent(i)))
+
+                
 
                 c = ROOT.TCanvas('c','c')
                 c.cd()
@@ -141,10 +176,10 @@ class HistoPloter:
                 maxPull = max(ys)
                 minPull = min(ys)
 
-                maxSFac = max(ys2); minSFac=min(ys2)
+                sFactor = frame.chiSquare() / math.sqrt(data.numEntries()) #sumRes / integral
 
                 maxPull = max(map(abs, [maxPull,minPull]))
-                sFactor = max(map(abs, [maxSFac,minSFac]))
+                
 
                 KS=ROOT.EvaluateADDistance(pdf, redData, mass, True)
                 AD=ROOT.EvaluateADDistance(pdf, redData, mass, False)
@@ -160,19 +195,29 @@ class HistoPloter:
                 # ROOT.KSandADWithToys(KS, AD, redData, pdf, mass)
                 
 
+                # check whether the tnp is on Z or J/psi
+                latPosition = 110 if frame.GetXaxis().GetXmax() > 10 else 3.15
+                
+                tl1 = ROOT.TLatex(latPosition,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
+                tl2 = ROOT.TLatex(latPosition,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
+                tl3 = ROOT.TLatex(latPosition,0.20*frame.GetMaximum(), 'KS = %4.2f'%(KS*math.sqrt(data.numEntries())))
+                tl4 = ROOT.TLatex(latPosition,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
+                tl5 = ROOT.TLatex(latPosition,0.30*frame.GetMaximum(), 'S-factor = %4.3f'%sFactor )
+                
+                result = { 'KS'     : KS*math.sqrt(data.numEntries()),
+                           'AD'     : AD,
+                           'maxPull': maxPull,
+                           'chi2'   : frame.chiSquare(),
+                           'sFactor': sFactor 
+                           }
 
-                
-                tl1 = ROOT.TLatex(110,0.10*frame.GetMaximum(), '#chi^{2}/ndof = %4.2f'%frame.chiSquare())
-                tl2 = ROOT.TLatex(110,0.15*frame.GetMaximum(), 'maxPull = %4.2f'%maxPull )
-                tl3 = ROOT.TLatex(110,0.20*frame.GetMaximum(), 'KS = %4.2f'%KS )
-                tl4 = ROOT.TLatex(110,0.25*frame.GetMaximum(), 'AD = %4.2f'%AD )
-                tl5 = ROOT.TLatex(110,0.30*frame.GetMaximum(), 'S-factor = %4.2f'%sFactor )
-                
-                KS_pf     .append(KS*math.sqrt(data.numEntries()))     
-                AD_pf     .append(AD)                                  
-                maxPull_pf.append(maxPull)
-                chi_pf    .append(frame.chiSquare())
-                sFactor_pf.append(sFactor_pf)
+                results[ty] = result
+
+                # KS_pf     .append(KS*math.sqrt(data.numEntries()))     
+                # AD_pf     .append(AD                             )                                  
+                # maxPull_pf.append(maxPull                        )
+                # chi_pf    .append(frame.chiSquare()              )
+                # sFactor_pf.append(sFactor                        )
 
                 tl1.Draw('same')
                 tl2.Draw('same')
@@ -183,13 +228,25 @@ class HistoPloter:
                 c.SaveAs(directory+'/%s_%i.pdf' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.png' %(ty, nbin))
                 c.SaveAs(directory+'/%s_%i.root'%(ty, nbin))
+
+                c.IsA().Destructor(c)
+                hist.IsA().Destructor(hist)
+
+
+            # move fits to the diagnostic folders :D
+            print type(results)
+            print results
+            diagLabel= FitDiagnostics.FitDiagnostics(results)
+
+            for ty in 'Pass,Fail'.split(','):
+                for ext in 'root,png,pdf'.split(','):
+                    os.system('cp %s %s'%(directory+'/%s_%i.%s'%(ty,nbin,ext), directories[diagLabel]))
                 
-                
-            self.KSs     .append(max(KS_pf))
-            self.ADs     .append(max(AD_pf))
-            self.maxPulls.append(max(maxPull_pf))
-            self.chi2s   .append(max(chi_pf))
-            self.sFactors.append(max(sFactor_pf))
+            # self.KSs     .append(max(KS_pf))
+            # self.ADs     .append(max(AD_pf))
+            # self.maxPulls.append(max(maxPull_pf))
+            # self.chi2s   .append(max(chi_pf))
+            # self.sFactors.append(max(sFactor_pf))
 
 #         for hp, fp, hf, ff, w in zip(eff.hpassing, eff.funcpassing, eff.hfailing, eff.funcfailing, eff.rooworksp):
 #             nbin += 1
@@ -303,12 +360,8 @@ class HistoPloter:
             effFolder+= '_AND_%s'%effL[0].type_
         print '#######', effFolder
         effFolder = self.FormatOutputPath(effFolder)
-        
-        #print 'effFolder is', effFolder
         directory = self.CreateOutputFolder('%s/%s'%('Plots/Efficiency',effFolder))
-        #directory = self.FormatOutputPath(directory)
-        
-        print 'directory is', directory
+
 
         cDict = {} #Dictionnary of canvas
         for eff in effList[0]:
@@ -410,5 +463,5 @@ class HistoPloter:
         for key in cDict.keys():
             cDict[key].SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
             cDict[key].SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
-
+            cDict[key].IsA().Destructor(cDict[key])
 
