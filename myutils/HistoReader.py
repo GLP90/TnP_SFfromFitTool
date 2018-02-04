@@ -318,6 +318,26 @@ class HistoReader:
         #print self.funcfailing
         #sys.exit()
 
+    def SetNewRange(self, xmin, xmax):
+        '''Clear the distributions and fit histograms within the a certain range'''
+        #newEffList = []
+
+        #for eff in self.EffList:
+        #    eff.SetNewRange(20, 120)
+        #    newEffList.append(eff)
+
+        #self.EffList = newEffList
+
+        for eff in self.EffList:
+            eff.SetNewRange(27, 120)
+            #newEffList.append(eff)
+
+    def CleanBigError(self, threshold):
+        for eff in self.EffList:
+            eff.CleanBigError(threshold)
+
+
+
     def DrawEfficiency(self):
         pass
         

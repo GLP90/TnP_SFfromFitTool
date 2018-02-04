@@ -71,6 +71,7 @@ class HistoPloter:
 
         print 'xbins is', xbins
         h = ROOT.TH1F('h', 'h', nbins, xbins)
+        h.Sumw2()
 
         for bin_ in bins:
             num_x = ROOT.Double(999)
@@ -79,14 +80,15 @@ class HistoPloter:
             num_y_low = 999 
 
             gr.GetPoint(bin_,num_x,num_y)
-            num_y_hi = gr.GetErrorYhigh(i)
-            num_y_low = gr.GetErrorYlow(i)
+            num_y_hi = gr.GetErrorYhigh(bin_)
+            num_y_low = gr.GetErrorYlow(bin_)
 
             max_error = max(num_y_hi,num_y_low)
 
             #Convert into TH1D
             h.SetBinContent(h.FindBin(num_x), num_y)
             h.SetBinError(h.FindBin(num_x), max_error)
+            #print 'max error is', max_error
 
         return h
 
@@ -356,6 +358,50 @@ class HistoPloter:
         for eff in effList:
             self.CheckFit(eff)
 
+    def SetPadParemeter(self, h, s = 'up'):
+        '''Set some style parameters for up/down pad. Used in PlotEff1D'''
+
+        if s == 'up':
+            h.SetMarkerStyle(20)
+            h.SetMarkerColor(1)
+            h.SetLineWidth(2)
+            h.GetXaxis().SetTitle("Effciency")
+            h.GetYaxis().SetRangeUser(self.effDownRange, self.effUpRange)
+            h.GetYaxis().SetTitle()
+            h.GetYaxis().SetTitleSize(27)
+            h.GetYaxis().SetTitleFont(63)
+            h.GetYaxis().SetLabelFont(43)
+            h.SetMarkerStyle(20)
+            h.GetYaxis().SetLabelSize(20)
+            h.GetYaxis().SetTitleOffset(1.5)
+            h.GetXaxis().SetTitleSize(27)
+            h.GetXaxis().SetLabelSize(20)
+            h.GetXaxis().SetTitleFont(63)
+            h.GetXaxis().SetTitleSize(27)
+            h.GetXaxis().SetLabelFont(43)
+        elif s == 'down':
+            h.SetTitle("")
+            h.SetLineWidth(2)
+            h.SetLineColor(1)
+            h.SetMarkerStyle(20)
+            #h.SetMarkerSize(20)
+            h.SetMarkerColor(1)
+            h.GetYaxis().SetRangeUser(0.85,1.15)
+            h.GetYaxis().SetTitle("")
+            h.GetYaxis().SetNdivisions(505)
+            h.GetYaxis().SetLabelSize(20)
+            h.GetYaxis().SetTitleFont(63)
+            h.GetYaxis().SetTitleOffset(1.5)
+            h.GetYaxis().SetLabelFont(43)
+            h.GetYaxis().SetTitleSize(27)
+            h.GetXaxis().SetTitleSize(27)
+            h.GetXaxis().SetLabelSize(20)
+            h.GetXaxis().SetTitleFont(63)
+            h.GetXaxis().SetTitleSize(27)
+            h.GetXaxis().SetTitleOffset(3)
+            h.GetXaxis().SetLabelFont(43)
+        
+
     def PlotEff1D(self, effList):
         '''Plot 1D efficiency distributions. Here effList is a container of efficiency lists. Each list should correspond to another sample. e.g. effList[0] a list of data efficiency, effList[1] a list of MC1 efficiency,  effList[2] a list of MC2 efficiency. All efficiencies will be ploted on the same canvas. The first list i.e. effList[0] will be used as reference in the ratio plot'''
 
@@ -378,22 +424,25 @@ class HistoPloter:
 
         cDict = {} #Dictionnary of canvas
         effDict = {} #Store "Nominal efficiencies". Used to compute ratio
-        for eff in effList[0]:
-            if not eff.heff: continue
-            effname = eff.name
-            c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
 
-            theff = self.TGraph2TH1F(eff.heff)
-            effDict[effname] = theff
-            theff.GetYaxis().SetRangeUser( self.effDownRange, self.effUpRange)
-            theff.SetLineColor(color_list[0])
-            theff.SetLineStyle(linestyle_list[0])
-            theff.SetMarkerStyle(markerstyle_list[0])
-            theff.SetMarkerColor(color_list[0])
-            theff.SetMarkerSize(20)
-            theff.SetLineWidth(2)
+        theffDic = {}
+        if len(effList) == 1:
+            for eff in effList[0]:
+                if not eff.heff: continue
+                effname = eff.name
+                c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
 
-            if len(effList) == 1:#no ratio needed if only one efficiency
+                theff = self.TGraph2TH1F(eff.heff)
+                effDict[effname] = theff
+                theff.GetYaxis().SetRangeUser( self.effDownRange, self.effUpRange)
+                theff.SetLineColor(color_list[0])
+                theff.SetLineStyle(linestyle_list[0])
+                theff.SetMarkerStyle(markerstyle_list[0])
+                theff.SetMarkerColor(color_list[0])
+                theff.SetMarkerSize(20)
+                theff.SetLineWidth(2)
+
+                #if len(effList) == 1:#no ratio needed if only one efficiency
                 c.cd()
                 theff.SetLineWidth(2)
                 theff.DrawCopy()
@@ -402,134 +451,199 @@ class HistoPloter:
                 print 'list len is 1'
                 #sys.exit()
 
-         #finish this part in order to make multiple 1D efficiency
-            else:
-                c.cd()
-                #Make Pads
-                t = ROOT.TPad('t_%s'%effname,'t_%s'%effname, 0, 0.3, 1, 1.0)#top pad
-                t.SetBottomMargin(0.)
-                t.SetTopMargin(0.1)
-                t.Draw()
-                t.cd()
-                theff.DrawCopy()
-                cDict[effname] =  c
-
-        #More than one efficiency list. Will plot them all on the same canvas
-
-
-        if len(effList) > 1:
-            first_ratio = True 
+        elif effList > 1:
+            #Store all the efficiencies grouped by name. The first one is the one that defined the num of all the ratios
             theffDic = {}
-            for key in cDict.keys():
-                theffDic[key] = []
-                for effL in effList[1:]:
-                    found = False
-                    for eff in effL:
-                        if not eff.name == key:
-                            continue
+            theratioDic = {}
+            for effL in effList: 
+                for eff in effL:
 
-                        found = True
-                        theff2 = self.TGraph2TH1F(eff.heff)
-                        ratio = effDict[key]
-                        #ratio = self.TGraph2TH1F(eff.heff)
-                        ratio.Divide(theff2)
-                        theffDic[key].append([theff2, ratio])
+                    effname = eff.name
 
-                    if not found:
-                        print '@ERROR: the file %s doesn\'t containt the efficiency %s. Aborting.' %(effL, eff.name)
-                        sys.exit
+                    if not effname in theffDic:
+                        theffDic[effname] = []
+                        theratioDic[effname] = []
 
-            for key in cDict.keys():
-                first_ratio = True
-                #used tojset the style
-                index = 0 
-                for th in theffDic[key]:
-                        index += 1
+                    #theff = self.TGraph2TH1F(eff.heff)
+                    theff = eff.heff
+                    theffDic[effname].append(theff)
 
-                        found = True
-                        cDict[key].GetPad(0).cd()
+                    #Compute ratio
+                    if len(theffDic[effname]) > 1:
+                        ratio = copy.copy(self.TGraph2TH1F(theffDic[effname][0])) 
+                        den = copy.copy(self.TGraph2TH1F(theffDic[effname][-1]))
+                        ratio.Sumw2()
+                        ratio.Divide(den)
+                        theratioDic[effname].append(ratio) 
+                        del den
 
-                        #theff2 = self.TGraph2TH1F(eff.heff)
-                        #theff2 = self.TGraph2TH1F(th[0])
+            print 'theffDic is', theffDic
+            for key in theffDic.keys():
 
-                        theff2 = th[0]
+                   c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
 
-                        #Style
-                        theff2.SetLineColor(color_list[index])
-                        theff2.SetLineStyle(linestyle_list[index])
-                        theff2.SetMarkerStyle(markerstyle_list[index])
-                        theff2.SetMarkerSize(20)
-                        theff2.SetMarkerColor(color_list[index])
-                        theff2.SetLineWidth(2)
+                   t = ROOT.TPad('t_%s'%effname,'t_%s'%effname, 0, 0.3, 1, 1.0)#top pad
+                   t.SetBottomMargin(0.)
+                   t.SetTopMargin(0.1)
+                   t.Draw()
+                   t.cd()
 
-                        theff2.DrawCopy('SAME')
+                   theffDic[key][0].Draw('AP')
+#                   theffDic[key][0].GetXaxis().SetRangeUser(theratioDic[key][0].GetXaxis().GetBinLowEdge(1),theratioDic[key][0].GetXaxis().GetBinLowEdge(theratioDic[key][0].GetXaxis().GetNbins()))
+                   xaxis = theratioDic[key][0].GetXaxis()
+                   theffDic[key][0].GetXaxis().SetRangeUser(xaxis.GetBinLowEdge(1),xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
+                   #theffDic[key][0].GetXaxis().SetRangeUser(10,xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
+                   self.SetPadParemeter(theffDic[key][0], 'up')
+                   for effL in theffDic[key][1:]:
+                       effL.Draw('P')
+
+                   c.cd()
+                   b = ROOT.TPad('b_%s'%effname,'b_%s'%effname, 0, 0., 1, 0.3)#bottom pad
+                   b.SetTopMargin(0.0)
+                   b.SetBottomMargin(0.35)
+                   b.SetGridy()
+                   b.Draw()
+                   b.cd()
+
+                   theratioDic[key][0].Draw()
+                   self.SetPadParemeter(theratioDic[key][0], 'down')
+                   for rL in theratioDic[key][1:]:
+                       rL.Draw('SAME')
+                       #for r in rL:
+                       #    r.Draw('SAME')
+                   c.Update()
+
+                   c.SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
+                   c.SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
+                   c.SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
+       
+
+         ##finish this part in order to make multiple 1D efficiency
+         #   else:
+         #       c.cd()
+         #       #Make Pads
+         #       t = ROOT.TPad('t_%s'%effname,'t_%s'%effname, 0, 0.3, 1, 1.0)#top pad
+         #       t.SetBottomMargin(0.)
+         #       t.SetTopMargin(0.1)
+         #       t.Draw()
+         #       t.cd()
+         #       theff.DrawCopy()
+         #       cDict[effname] =  c
+
+        ##More than one efficiency list. Will plot them all on the same canvas
 
 
-                        #cDict[key].GetListOfPrimitives().ls()
-                        #sys.exit()
-                        #Draw Ratio
-                        #cDict[key].GetPad(1).cd()
+         #if len(effList) > 1:
+         #   first_ratio = True 
+         #   theffDic = {}
+         #   for key in cDict.keys():
+         #       theffDic[key] = []
+         #       for effL in effList[1:]:
+         #           found = False
+         #           for eff in effL:
+         #               if not eff.name == key:
+         #                   continue
 
-                        #ratio = copy.copy(theff2)
-                        #ratio.Divide(theff2)
-                        ratio = th[1]
-                        ratio.SetLineWidth(2)
-                        if first_ratio:
-                            #ratio style option 
-                            ratio.SetTitle("")
-                            ratio.SetLineWidth(2)
-                            ratio.SetLineColor(1)
-                            ratio.SetMarkerStyle(20)
-                            ratio.SetMarkerSize(20)
-                            ratio.SetMarkerColor(1)
-                            ratio.GetYaxis().SetRangeUser(0.85,1.15)
-                            #ratio.GetYaxis().SetTitle("Data/MC")
-                            ratio.GetYaxis().SetNdivisions(505)
-                            ratio.GetYaxis().SetLabelSize(20)
-                            ratio.GetYaxis().SetTitleFont(63)
-                            ratio.GetYaxis().SetTitleOffset(1.5)
-                            ratio.GetYaxis().SetLabelFont(43)
-                            ratio.GetYaxis().SetTitleSize(27)
-                            ratio.GetXaxis().SetTitleSize(27)
-                            ratio.GetXaxis().SetLabelSize(20)
-                            #ratio.GetXaxis().SetTitle(_title)
-                            ratio.GetXaxis().SetTitleFont(63)
-                            ratio.GetXaxis().SetTitleSize(27)
-                            ratio.GetXaxis().SetTitleOffset(3)
-                            ratio.GetXaxis().SetLabelFont(43)
+         #               found = True
+         #               theff2 = self.TGraph2TH1F(eff.heff)
+         #               ratio = effDict[key]
+         #               #ratio = self.TGraph2TH1F(eff.heff)
+         #               ratio.Divide(theff2)
+         #               theffDic[key].append([theff2, ratio])
 
-                            #c = cDict[key]
-                            #print '------------'
-                            #c.GetListOfPrimitives().ls()
-                            c.cd()
-                            b = ROOT.TPad('b_%s'%effname,'b_%s'%effname, 0, 0., 1, 0.3)#bottom pad
-                            b.SetTopMargin(0.0)
-                            b.SetBottomMargin(0.35)
-                            b.SetGridy()
-                            b.Draw('SAME')
-                            b.cd()
-                            ratio.GetYaxis().SetRangeUser(0.5, 1.5)
-                            ratio.DrawCopy()
-                            first_ratio = False 
-                            #print '------------'
-                            #c.GetListOfPrimitives().ls()
-                            #sys.exit()
-                            cDict[key] = copy.copy(c)
-                        else: 
-                            #cDict[key].GetListOfPrimitives().ls()
-                            cDict[key].GetPad(0).cd()
-                            ratio.DrawCopy('SAME')
-                            theff2.SetLineColor(color_list[index])
-                            theff2.SetLineStyle(linestyle_list[index])
-                            theff2.SetMarkerStyle(markerstyle_list[index])
+         #           if not found:
+         #               print '@ERROR: the file %s doesn\'t containt the efficiency %s. Aborting.' %(effL, eff.name)
+         #               sys.exit
 
-                if not found:
-                    print '@ERROR: the file %s doesn\'t containt the efficiency %s. Aborting.' %(effL, eff.name)
-                    sys.exit()
+         #   for key in cDict.keys():
+         #       first_ratio = True
+         #       #used tojset the style
+         #       index = 0 
+         #       for th in theffDic[key]:
+         #               index += 1
 
-        for key in cDict.keys():
-            cDict[key].SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
-            #cDict[key].SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
-            cDict[key].SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
-            #cDict[key].IsA().Destructor(cDict[key])
+         #               found = True
+         #               #c = copy.copy(cDict[key])
+         #               #del cDict[key]
+         #               cDict[key].GetPad(0).cd()
+         #               #c.GetPad(0).cd()
+
+         #               theff2 = th[0]
+         #               #Style
+         #               #theff2.SetLineColor(color_list[index])
+         #               theff2.SetLineColor(4)
+         #               theff2.SetLineStyle(linestyle_list[index])
+         #               theff2.SetMarkerStyle(markerstyle_list[index])
+         #               theff2.SetMarkerSize(20)
+         #               theff2.SetMarkerColor(color_list[index])
+         #               theff2.SetLineWidth(2)
+         #               theff2.Draw('SAME')
+         #               cDict[key].GetPad(0).Update()
+         #               cDict[key].GetPad(0).Draw()
+
+         #               ratio = th[1]
+         #               ratio.SetLineWidth(2)
+         #               if first_ratio:
+         #                   #c.cd()
+         #                   b = ROOT.TPad('b_%s'%effname,'b_%s'%effname, 0, 0., 1, 0.3)#bottom pad
+         #                   b.SetTopMargin(0.0)
+         #                   b.SetBottomMargin(0.35)
+         #                   b.SetGridy()
+         #                   b.Draw()
+         #                   b.cd()
+         #                   #ratio style option 
+         #                   ratio.SetTitle("")
+         #                   ratio.SetLineWidth(2)
+         #                   ratio.SetLineColor(1)
+         #                   ratio.SetMarkerStyle(20)
+         #                   ratio.SetMarkerSize(20)
+         #                   ratio.SetMarkerColor(1)
+         #                   ratio.GetYaxis().SetRangeUser(0.85,1.15)
+         #                   #ratio.GetYaxis().SetTitle("Data/MC")
+         #                   ratio.GetYaxis().SetNdivisions(505)
+         #                   ratio.GetYaxis().SetLabelSize(20)
+         #                   ratio.GetYaxis().SetTitleFont(63)
+         #                   ratio.GetYaxis().SetTitleOffset(1.5)
+         #                   ratio.GetYaxis().SetLabelFont(43)
+         #                   ratio.GetYaxis().SetTitleSize(27)
+         #                   ratio.GetXaxis().SetTitleSize(27)
+         #                   ratio.GetXaxis().SetLabelSize(20)
+         #                   #ratio.GetXaxis().SetTitle(_title)
+         #                   ratio.GetXaxis().SetTitleFont(63)
+         #                   ratio.GetXaxis().SetTitleSize(27)
+         #                   ratio.GetXaxis().SetTitleOffset(3)
+         #                   ratio.GetXaxis().SetLabelFont(43)
+
+         #                   #c = cDict[key]
+         #                   #print '------------'
+         #                   #c.GetListOfPrimitives().ls()
+         #                   #c.cd()
+         #                   ratio.GetYaxis().SetRangeUser(0.5, 1.5)
+         #                   ratio.DrawCopy()
+         #                   first_ratio = False 
+         #                   #print '------------'
+         #                   #c.GetListOfPrimitives().ls()
+         #                   #sys.exit()
+         #                   #cDict[key] = copy.copy(c)
+         #                   #cDict[key] = copy.copy(c)
+         #                   cDict[key].Update()
+         #               else: 
+         #                   #cDict[key].GetListOfPrimitives().ls()
+         #                   #cDict[key].GetPad(0).cd()
+         #                   c.GetPad(1).cd()
+         #                   ratio.DrawCopy('SAME')
+         #                   theff2.SetLineColor(color_list[index])
+         #                   theff2.SetLineStyle(linestyle_list[index])
+         #                   theff2.SetMarkerStyle(markerstyle_list[index])
+         #                   #cDict[key] = copy.copy(c)
+
+
+         #       if not found:
+         #           print '@ERROR: the file %s doesn\'t containt the efficiency %s. Aborting.' %(effL, eff.name)
+         #           sys.exit()
+
+        #for key in cDict.keys():
+        #    cDict[key].SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
+        #    #cDict[key].SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
+        #    cDict[key].SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
 
