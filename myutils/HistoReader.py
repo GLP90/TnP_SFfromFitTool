@@ -29,6 +29,7 @@ class HistoReader:
         self.Den= inputTree.split('_DEN_')[-1].split('_PAR_')[0]
         self.Num= inputTree.split('_DEN_')[0].split('_NUM_')[-1]
 
+
         rootoutput = file.GetDirectory('tpTree')
         nextkey = ROOT.TIter(rootoutput.GetListOfKeys())
         key = nextkey.Next()
@@ -44,13 +45,27 @@ class HistoReader:
                 effKey = ROOT.TIter(effList)
                 effkey = effKey.Next()
             else:
-                print '[W] fit_eff_plots is not in the file'
+                print 'fit_eff_plots is not in the file'
                 effkey = False
             AllEffList = []
             while (effkey):
-                AllEffList.append(effkey.GetName())
+                eff_ = effdir.Get(effkey.GetName()).GetListOfPrimitives()
+                #Check if TH2D in list of primitive
+                primIter = ROOT.TIter(eff_)
+                prim = primIter.Next()
+
+                isTH2F = False
+                while (prim):
+                    if prim.ClassName() == 'TH2F':
+                        #print 'It is a TH2F'
+                        isTH2F = True 
+                        break
+                    prim = primIter.Next()
+
+                if not isTH2F: AllEffList.append(effkey.GetName())
                 effkey = effKey.Next()
             self.EffRemover(AllEffList)
+            #sys.exit()
 
 
             for effkey in AllEffList:
@@ -97,6 +112,8 @@ class HistoReader:
                         subkey = keyInDir.Next()
                         continue
                   
+                    #print 'subkey name is', subkey.GetName()
+                    #print 'xpar is', self.xpar
                     xBin = int(subkey.GetName().split('%s_bin' %self.xpar)[1].split('_')[0])
 
                     ########
@@ -129,8 +146,7 @@ class HistoReader:
                 # try at least to recover the workspaces
                 for subkey in directory.GetListOfKeys():
                     if not subkey.IsFolder(): continue
-                    print 'here'
-                    print subkey.GetName()
+                    #print subkey.GetName()
                     subdir =  subkey.ReadObj()
                     canv=subdir.Get('fit_canvas')
                     self.fitResult.append(subdir.Get('fitresults'))
@@ -161,9 +177,11 @@ class HistoReader:
         '''When making 2D efficiencies (e.g. pt X eta), all permutation are stored in the .root file. Here only one set of efficiency is keep. The selection criteria is: efficiencies are ploted wrt the  parameter with the largerst number of bins '''
         keyPrefixList = []
         for key in AllEffList:
+            #if key.endswith('PLOT'): continue # to ignore 2D maps
             keyPrefix = key.split('_PLOT')[0]
-            if '_' in keyPrefix: continue
+            #if '_' in keyPrefix: continue
             keyPrefixList.append(keyPrefix)
+        #print 'keyPrefixList', keyPrefixList
 
         if len(keyPrefixList) > 0:
             self.xpar  = min(set(keyPrefixList), key=keyPrefixList.count)

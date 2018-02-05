@@ -14,6 +14,7 @@ ROOT.gROOT.LoadMacro('include/GoodnessOfFit.cc+')
 ROOT.gROOT.LoadMacro('include/KSandADWithToys.cc+')
 ROOT.gROOT.LoadMacro('myutils/tdrstyle.C')
 ROOT.gROOT.LoadMacro('myutils/CMS_lumi.C')
+#sys.exit()
 
 ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
 
@@ -70,7 +71,7 @@ class HistoPloter:
             else:
                 xbins[bin_] = x - x_low
 
-        print 'xbins is', xbins
+        #print 'xbins is', xbins
         h = ROOT.TH1F('h', 'h', nbins, xbins)
         h.Sumw2()
 
@@ -499,8 +500,6 @@ class HistoPloter:
                 legentry =  self.MakeLegend(hr)
                 thelegendList.append(legentry)
 
-                print 'Num is', hr.Num
-                print 'Den is', hr.Den
                 for eff in effL:
 
                     effname = eff.name
@@ -513,10 +512,6 @@ class HistoPloter:
 
                     theff = eff.heff
                     theffDic[effname].append(theff)
-                    #print '-----------'
-                    ##print eff.xpar
-                    #print eff.ypar
-                    ##sys.exit()
                     theXparDic[effname] = eff.xpar
                     theYparDic[effname] = eff.ypar
 
@@ -531,7 +526,7 @@ class HistoPloter:
 
             for key in theffDic.keys():
 
-                   c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
+                   c = ROOT.TCanvas('c_%s'%key,'c_%s'%key)
 
                    t = ROOT.TPad('t_%s'%effname,'t_%s'%effname, 0, 0.3, 1, 1.0)#top pad
                    t.SetBottomMargin(0.)
@@ -543,10 +538,11 @@ class HistoPloter:
                    xaxis = theratioDic[key][0].GetXaxis()
                    theffDic[key][0].GetXaxis().SetRangeUser(xaxis.GetBinLowEdge(1),xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
                    self.SetPadParemeter(theffDic[key][0], 'up')
+
                    count = 0
 
                    #Legend
-                   leg = ROOT.TLegend(0.4, 0.6, 0.75 , 0.85)
+                   leg = ROOT.TLegend(0.4, 0.6, 0.75 , 0.75)
                    headtext = ''
                    ypartext = ''
                    if dentext != '':
@@ -557,12 +553,24 @@ class HistoPloter:
                    else:
                        headtext = '%s%s'%(numtext, dentext)
 
-                   leg.SetHeader(headtext)
-                   #This is causing the segfault
-                   header = leg.GetListOfPrimitives().First()
-                   header.SetTextColor(1)
-                   header.SetTextFont(43)
-                   header.SetTextSize(20)
+                   theffDic[key][0].SetTitle(headtext)
+
+                   #leg.SetHeader(headtext)
+                   ##This is causing the segfault
+                   #header = leg.GetListOfPrimitives().First()
+                   #header.SetTextColor(1)
+                   #header.SetTextFont(43)
+                   #header.SetTextSize(20)
+
+                   latex = ROOT.TLatex()
+                   latex.SetNDC()
+                   latex.SetTextAngle(0)
+                   latex.SetTextColor(ROOT.kBlack)
+                   latex.SetTextFont(43)
+                   latex.SetTextAlign(11)
+                   latex.SetTextSize(20)
+                   latex.DrawLatex(0.4,0.81, headtext)
+
                    leg.SetTextFont(43)
                    leg.SetTextSize(20)
                    leg.SetBorderSize(0)
@@ -599,9 +607,11 @@ class HistoPloter:
                    ROOT.CMS_lumi(t, lumientry+'(13 TeV)', 11);
                    c.Update()
 
-                   c.SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
-                   c.SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
-                   c.SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
+                   c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.pdf' %(directory,hrList[0].Num, hrList[0].Den, key)))
+                   c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.png' %(directory,hrList[0].Num, hrList[0].Den,key)))
+                   c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.root' %(directory,hrList[0].Num, hrList[0].Den,key)))
+
+                   del c
 
 
 ##############
@@ -612,7 +622,7 @@ class HistoPloter:
 
     def xParDic(self, par):
         '''Maps x parameter to propet latex expression (for plots)'''
-        dic = {'pt':'muon p_{T} [GeV]'}
+        dic = {'pt':'muon p_{T} [GeV]','pair_newTuneP_probe_pt':'muon tune p_{T}'}
         return dic[par]
 
     def yParDic(self, par):
@@ -635,7 +645,7 @@ class HistoPloter:
                 'TightID':'Tight Id', 
                 'TightIDandIPCut':'Tight Id',
                 'genTracks':'',
-                'TithtRelIso':'Tight Iso',
+                'TightRelIso':'Tight Iso',
                 'LooseRelIso':'Loose Iso',
                 'TightRelTkIso':'Tight Trk Iso',
                 'LooseRelTkIso':'Loose Trk Iso',

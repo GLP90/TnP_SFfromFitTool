@@ -43,11 +43,6 @@ class Efficiency:
             print '@ERROR: Efficiency don\'t have any lumi value. Cannot add them. @Aborting'
             sys.exit()
 
-        print 'gr1------------------'
-        self.ProcessEff(self.heff)
-        print 'gr2------------------'
-        self.ProcessEff(eff.heff)
-
         self.addHist(self.AddGraph(self.heff, eff.heff, self.lumi, eff.lumi))
         self.setLumi(self.lumi + eff.lumi)
 
@@ -100,16 +95,6 @@ class Efficiency:
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
 
-        print 'After adding'
-        print '--------------------'
-        print xbins_
-        print xbinsL_
-        print xbinsH_
-        print ybins_
-        print ybinsL_
-        print ybinsH_
-        print '--------------------'
-
         new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
         return new_gr
 
@@ -119,6 +104,7 @@ class Efficiency:
         -Remove bins above the xmax parameter
         -Modify large uncertainy e.g. take the average of the two neighbour bins
         '''
+
 
         xbins = []
         xbinsL = [] 
@@ -130,6 +116,7 @@ class Efficiency:
         nbins = gr.GetN()
         bins = range(0,nbins)
         new_nbins = 0
+
         for bin_ in bins:
             x = ROOT.Double(999)
             y = ROOT.Double(999)
@@ -144,7 +131,6 @@ class Efficiency:
                 continue
             if xmax and x + x_hi > xmax: 
                 continue
-
             xbins.append(x)
             xbinsL.append(x_low)
             xbinsH.append(x_hi)
@@ -194,8 +180,6 @@ class Efficiency:
             ybinsL = ybinsL_ER
             ybinsH = ybinsH_ER
 
-
-
         #Set all the bins to create new function 
         xbins_ =    np.array([i for i in xbins],dtype=np.float64)
         xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
@@ -203,13 +187,6 @@ class Efficiency:
         ybins_ =    np.array([i for i in ybins],dtype=np.float64)
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
-
-        print xbins_
-        print xbinsL_
-        print xbinsH_
-        print ybins_
-        print ybinsL_
-        print ybinsH_
 
         new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
         return new_gr
