@@ -1,6 +1,7 @@
 import ROOT
 import numpy as np
 import sys
+import math
 
 class Efficiency:
     
@@ -14,10 +15,13 @@ class Efficiency:
         self.fitResult=fitResult
         self.rooworksp=rooworksp
         self.addFits(hpassing, hfailing, funcfailing, funcpassing)
-
-
+        self.lumi = None
 
         #dimention of the efficiency
+
+    def addLumi(self, lumi):
+        '''Add luminosity. Used when ploting and summing efficiencies together'''
+        self.lumi = lumi
 
 
     def addHist(self, h):
@@ -31,6 +35,83 @@ class Efficiency:
         self.funcfailing = funcfailing
         self.funcpassing = funcpassing
 
+    def SumEfficiency(self, eff):
+        '''Modify efficiency by adding eff. Lumi and the TGraphs are modified accordingly'''
+
+        if not self.lumi or not eff.lumi:
+            print '@ERROR: Efficiency don\'t have any lumi value. Cannot add them. @Aborting'
+            sys.exit()
+
+        print 'gr1------------------'
+        self.ProcessEff(self.heff)
+        print 'gr2------------------'
+        self.ProcessEff(eff.heff)
+
+        self.addHist(self.AddGraph(self.heff, eff.heff, self.lumi, eff.lumi))
+        self.addLumi(self.lumi + eff.lumi)
+
+    def AddGraph(self, eff1, eff2, lumi1, lumi2):
+        '''Return one single TGraphError that is the sum of eff1, and eff2. The sum is lumi-reweighted'''
+
+        xbins = []
+        xbinsL = [] 
+        xbinsH = [] 
+        ybins = [] 
+        ybinsL = [] 
+        ybinsH = [] 
+
+        nbins = eff1.GetN()
+        if nbins != eff2.GetN():
+            print "@ERROR: number of bins of efficieny don't match. Exiting"
+            sys.exit()
+
+        bins = range(0,nbins)
+        new_nbins = 0
+        for bin_ in bins:
+            #x1, x2 = ROOT.Double(999), ROOT.Double(999)
+            x, x2 = ROOT.Double(999), ROOT.Double(999)
+            y1, y2 = ROOT.Double(999), ROOT.Double(999)
+
+            eff1.GetPoint(bin_, x, y1)
+            eff2.GetPoint(bin_, x2, y2)
+
+            x_hi = eff1.GetErrorXhigh(bin_)
+            x_low = eff1.GetErrorXlow(bin_)
+            y_hi1, y_hi2    = eff1.GetErrorYhigh(bin_),eff2.GetErrorYhigh(bin_),
+            y_low1, y_low2  = eff1.GetErrorYlow(bin_), eff2.GetErrorYlow(bin_),
+
+            l1 = lumi1/((lumi1+lumi2)*1.0)
+            l2 = lumi2/((lumi1+lumi2)*1.0)
+
+            xbins.append(x)
+            xbinsL.append(x_low)
+            xbinsH.append(x_hi)
+            ybins.append(y1*l1 + y2*l2)
+            ybinsL.append(math.sqrt((l1*y_low1)**2+(l2*y_low2)**2))
+            ybinsH.append(math.sqrt((l1*y_hi1)**2+(l2*y_hi2)**2))
+            new_nbins += 1
+
+        #Set all the bins to create new function 
+        xbins_ =    np.array([i for i in xbins],dtype=np.float64)
+        xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
+        xbinsH_ =   np.array([i for i in xbinsH],dtype=np.float64)
+        ybins_ =    np.array([i for i in ybins],dtype=np.float64)
+        ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
+        ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
+
+        print 'After adding'
+        print '--------------------'
+        print xbins_
+        print xbinsL_
+        print xbinsH_
+        print ybins_
+        print ybinsL_
+        print ybinsH_
+        print '--------------------'
+
+        new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        return new_gr
+
     def ProcessEff(self, gr, xmin = None, xmax=None, error_threshold = None):
         '''Modifies efficiency distribution. This includes
         -Remove bins below the xmin parameter
@@ -38,7 +119,6 @@ class Efficiency:
         -Modify large uncertainy e.g. take the average of the two neighbour bins
         '''
 
-        #Create subrange from current histogram
         xbins = []
         xbinsL = [] 
         xbinsH = [] 
@@ -63,11 +143,6 @@ class Efficiency:
                 continue
             if xmax and x + x_hi > xmax: 
                 continue
-
-            ##Reduce error if specified
-            #for yr in [y_hi, ylow]:
-            #    if yr/y > error_threshold:
-            #        print 'Too large error:', yr
 
             xbins.append(x)
             xbinsL.append(x_low)
@@ -118,6 +193,8 @@ class Efficiency:
             ybinsL = ybinsL_ER
             ybinsH = ybinsH_ER
 
+
+
         #Set all the bins to create new function 
         xbins_ =    np.array([i for i in xbins],dtype=np.float64)
         xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
@@ -126,17 +203,15 @@ class Efficiency:
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
 
-
-        #print xbins_    
-        #print xbinsL_   
-        #print xbinsH_   
-        #print ybins_    
-        #print ybinsL_   
-        #print ybinsH_   
+        print xbins_
+        print xbinsL_
+        print xbinsH_
+        print ybins_
+        print ybinsL_
+        print ybinsH_
 
         new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
         return new_gr
-        #self.addHist(new_gr)
 
     def SetNewRange(self, xmin, xmax):
         '''Clear the distributions and fit histograms within the a certain range'''

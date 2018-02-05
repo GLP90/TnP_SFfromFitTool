@@ -320,26 +320,28 @@ class HistoReader:
 
     def SetNewRange(self, xmin, xmax):
         '''Clear the distributions and fit histograms within the a certain range'''
-        #newEffList = []
-
-        #for eff in self.EffList:
-        #    eff.SetNewRange(20, 120)
-        #    newEffList.append(eff)
-
-        #self.EffList = newEffList
 
         for eff in self.EffList:
-            eff.SetNewRange(27, 120)
-            #newEffList.append(eff)
+            eff.SetNewRange(xmin, xmax)
 
     def CleanBigError(self, threshold):
         for eff in self.EffList:
             eff.CleanBigError(threshold)
 
+    def addLumi(self, lumi):
+        for eff in self.EffList:
+            eff.addLumi(lumi)
 
+    def Sum(self, hr2):
+        '''Sum of two Historeader. Results in one historeader that sums up both luminosity. All the efficiency distributions are summed by lumi'''
+        for eff1 in self.EffList:
+            for eff2 in hr2.EffList:
+                if  eff1.name != eff2.name: continue
+                eff1.SumEfficiency(eff2)
 
     def DrawEfficiency(self):
         pass
+
         
 
 if __name__ == "__main__":
