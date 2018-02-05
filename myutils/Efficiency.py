@@ -5,13 +5,14 @@ import math
 
 class Efficiency:
     
-    def __init__(self, raw_name, type_, name, h, xpar, ypars, hpassing, hfailing, funcfailing, funcpassing, fitResult, rooworksp):
+    def __init__(self, raw_name, type_, name, h, xpar, ypars, ypar, hpassing, hfailing, funcfailing, funcpassing, fitResult, rooworksp):
         self.raw_name = raw_name
         self.type_ = type_
         self.name = name
         self.addHist(h)
         self.xpar = xpar
         self.ypars = ypars
+        self.ypar = ypar
         self.fitResult=fitResult
         self.rooworksp=rooworksp
         self.addFits(hpassing, hfailing, funcfailing, funcpassing)

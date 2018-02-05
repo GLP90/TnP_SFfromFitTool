@@ -386,7 +386,7 @@ class HistoPloter:
             h.SetMarkerStyle(20)
             h.SetMarkerColor(1)
             h.GetYaxis().SetRangeUser(0.85,1.15)
-            h.GetYaxis().SetTitle("DATA/MDATA/MCC")
+            h.GetYaxis().SetTitle("DATA/MC")
             h.GetYaxis().SetNdivisions(505)
             h.GetYaxis().SetLabelSize(20)
             h.GetYaxis().SetTitleFont(63)
@@ -479,7 +479,11 @@ class HistoPloter:
             #Store all the efficiencies grouped by name. The first one is the one that defined the num of all the ratios
             theffDic = {}
             theratioDic = {}
+            theXparDic = {}
+            theYparDic = {}
             thelegendList = []
+            numtext = self.selDic(hrList[0].Num)
+            dentext = self.selDic(hrList[0].Den)
             lumientry = ''
 
             for hr in hrList: 
@@ -494,6 +498,9 @@ class HistoPloter:
                 #make legend
                 legentry =  self.MakeLegend(hr)
                 thelegendList.append(legentry)
+
+                print 'Num is', hr.Num
+                print 'Den is', hr.Den
                 for eff in effL:
 
                     effname = eff.name
@@ -501,22 +508,27 @@ class HistoPloter:
                     if not effname in theffDic:
                         theffDic[effname] = []
                         theratioDic[effname] = []
+                        theXparDic[effname] = []
+                        theYparDic[effname] = []
 
-                    #theff = self.TGraph2TH1F(eff.heff)
                     theff = eff.heff
                     theffDic[effname].append(theff)
+                    #print '-----------'
+                    ##print eff.xpar
+                    #print eff.ypar
+                    ##sys.exit()
+                    theXparDic[effname] = eff.xpar
+                    theYparDic[effname] = eff.ypar
 
                     #Compute ratio
                     if len(theffDic[effname]) > 1:
                         ratio = copy.copy(self.TGraph2TH1F(theffDic[effname][0])) 
                         den = copy.copy(self.TGraph2TH1F(theffDic[effname][-1]))
-                        #ratio.Sumw2()
                         ratio.Divide(den)
                         theratioDic[effname].append(ratio) 
                         del den
 
 
-            #print 'theffDic is', theffDic
             for key in theffDic.keys():
 
                    c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
@@ -535,7 +547,17 @@ class HistoPloter:
 
                    #Legend
                    leg = ROOT.TLegend(0.4, 0.6, 0.75 , 0.85)
-                   leg.SetHeader('some text')
+                   headtext = ''
+                   ypartext = ''
+                   if dentext != '':
+                       dentext = '/%s'% numtext
+                   if theYparDic[key]:
+                       ypartext = self.yParDic(theYparDic[key])
+                       headtext = '%s%s, %s'%(numtext, dentext, ypartext)
+                   else:
+                       headtext = '%s%s'%(numtext, dentext)
+
+                   leg.SetHeader(headtext)
                    #This is causing the segfault
                    header = leg.GetListOfPrimitives().First()
                    header.SetTextColor(1)
@@ -545,21 +567,18 @@ class HistoPloter:
                    leg.SetTextSize(20)
                    leg.SetBorderSize(0)
 
-                   print thelegendList
+                   #print thelegendList
                    if thelegendList[0]: leg.AddEntry(theffDic[key][0], str(thelegendList[0]),'LP')
            
                    index = 1
                    for effL in theffDic[key][1:]:
-                       print 'legentry is', thelegendList[index]
+                       #print 'legentry is', thelegendList[index]
                        if thelegendList[index]: leg.AddEntry(effL, thelegendList[index],'LP')
                        index += 1
                        self.SetHistoStyle(effL, count)
                        effL.Draw('P')
 
                    leg.Draw()
-                   #leg.GetListOfPrimitives().ls()
-
-                   #sys.exit()
 
                    c.cd()
                    b = ROOT.TPad('b_%s'%effname,'b_%s'%effname, 0, 0., 1, 0.3)#bottom pad
@@ -571,6 +590,7 @@ class HistoPloter:
 
                    theratioDic[key][0].Draw()
                    self.SetPadParemeter(theratioDic[key][0], 'down')
+                   theratioDic[key][0].GetXaxis().SetTitle(self.xParDic(theXparDic[key]))
                    for rL in theratioDic[key][1:]:
                        rL.Draw('SAME')
                        self.SetHistoStyle(rL, count)
@@ -582,4 +602,43 @@ class HistoPloter:
                    c.SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
                    c.SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
                    c.SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
-                   
+
+
+##############
+#All dictionnaries to make the plots
+##############
+
+
+
+    def xParDic(self, par):
+        '''Maps x parameter to propet latex expression (for plots)'''
+        dic = {'pt':'muon p_{T} [GeV]'}
+        return dic[par]
+
+    def yParDic(self, par):
+        dic = {
+                'abseta_bin0':'#||{#eta} #leq 0.9',
+                'abseta_bin1':'0.9 #leq #||{#eta} #leq 1.2',
+                'abseta_bin2':'1.2 #leq #||{#eta} #leq 2.1',
+                'abseta_bin3':'2.1 #leq #||{#eta} #leq 2.4'}
+
+        return dic[par]
+
+    def selDic(self, num):
+        dic = {'MediumID':'Medium Id',
+                'MediumPromptID':'Medium Id prompt',
+                'LooseID':'Loose Id',
+                'HighPtID':'High p_{T} Id',
+                'HighPtIDandIPCut':'High p_{T} Id',
+                'TrkHighPtID':'Tracker High p_{T} Id',
+                'SoftID':'Soft Id',
+                'TightID':'Tight Id', 
+                'TightIDandIPCut':'Tight Id',
+                'genTracks':'',
+                'TithtRelIso':'Tight Iso',
+                'LooseRelIso':'Loose Iso',
+                'TightRelTkIso':'Tight Trk Iso',
+                'LooseRelTkIso':'Loose Trk Iso',
+                }
+
+        return dic[num]
