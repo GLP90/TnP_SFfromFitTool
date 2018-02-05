@@ -13,6 +13,7 @@ import array
 ROOT.gROOT.LoadMacro('include/GoodnessOfFit.cc+')
 ROOT.gROOT.LoadMacro('include/KSandADWithToys.cc+')
 ROOT.gROOT.LoadMacro('myutils/tdrstyle.C')
+ROOT.gROOT.LoadMacro('myutils/CMS_lumi.C')
 
 ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
 
@@ -23,7 +24,7 @@ class HistoPloter:
 
     def __init__(self, outputpath):
         self.outputpath = outputpath
-        self.effUpRange = 1.05
+        self.effUpRange = 1.1
         self.effDownRange = 0.8
         self.KSs      = [] 
         self.ADs      = [] 
@@ -365,9 +366,8 @@ class HistoPloter:
             h.SetMarkerStyle(20)
             h.SetMarkerColor(1)
             h.SetLineWidth(2)
-            h.GetXaxis().SetTitle("Effciency")
+            h.GetYaxis().SetTitle("Effciency")
             h.GetYaxis().SetRangeUser(self.effDownRange, self.effUpRange)
-            h.GetYaxis().SetTitle()
             h.GetYaxis().SetTitleSize(27)
             h.GetYaxis().SetTitleFont(63)
             h.GetYaxis().SetLabelFont(43)
@@ -384,10 +384,9 @@ class HistoPloter:
             h.SetLineWidth(2)
             h.SetLineColor(1)
             h.SetMarkerStyle(20)
-            #h.SetMarkerSize(20)
             h.SetMarkerColor(1)
             h.GetYaxis().SetRangeUser(0.85,1.15)
-            h.GetYaxis().SetTitle("")
+            h.GetYaxis().SetTitle("DATA/MDATA/MCC")
             h.GetYaxis().SetNdivisions(505)
             h.GetYaxis().SetLabelSize(20)
             h.GetYaxis().SetTitleFont(63)
@@ -400,34 +399,59 @@ class HistoPloter:
             h.GetXaxis().SetTitleSize(27)
             h.GetXaxis().SetTitleOffset(3)
             h.GetXaxis().SetLabelFont(43)
-        
 
-    def PlotEff1D(self, effList):
+    def SetHistoStyle(self, h, index):
+        '''Modify color and style of the plot'''
+        color = [4, 2, 6, 9, 12, 42]
+        marker= [22, 23, 21, 24, 26]
+
+        h.SetMarkerStyle(marker[index])
+        h.SetMarkerColor(color[index])
+        h.SetLineColor(color[index])
+        h.SetLineWidth(2)
+        
+    def MakeLegend(self, ht):
+        '''Make legend of a specifique hr'''
+        print 'ht.Type is', ht.Type
+        if ht.Type == None:
+            return None
+
+        #if ht.Type == 'data': return 'DATA'
+        #if ht.Type == 'MC': return 'MC'
+
+        if ht.Type == 'data':
+            if ht.Info:
+                return '%s %s' %('DATA', ht.Info)
+            else: 
+                return 'DATA'
+        if ht.Type == 'mc':
+            if ht.Info:
+                return '%s %s' %('MC', ht.Info)
+            else:
+                return 'MC'
+        sys.exit()
+
+
+    def PlotEff1D(self, hrList):
         '''Plot 1D efficiency distributions. Here effList is a container of efficiency lists. Each list should correspond to another sample. e.g. effList[0] a list of data efficiency, effList[1] a list of MC1 efficiency,  effList[2] a list of MC2 efficiency. All efficiencies will be ploted on the same canvas. The first list i.e. effList[0] will be used as reference in the ratio plot'''
 
         ROOT.setTDRStyle()
+        if len(hrList[0].EffList) == 0: return
 
-        #Some definitions for the style of the plot
-        color_list =        [1, 4, 2, 3, 6, 8, 9]
-        linestyle_list =    [1, 1, 9, 8, 6, 4, 2]
-        markerstyle_list =  [20, 22, 24, 26, 32, 32]
-
-        if len(effList[0]) == 0: return
-
-        effFolder = effList[0][0].type_
-        for effL in effList[1:]:
-            effFolder+= '_AND_%s'%effL[0].type_
+        effFolder = hrList[0].EffList[0].type_
+        for hr in hrList[1:]:
+            effFolder+= '_AND_%s'%hr.EffList[0].type_
         print '#######', effFolder
         effFolder = self.FormatOutputPath(effFolder)
         directory = self.CreateOutputFolder('%s/%s'%('Plots/Efficiency',effFolder))
-
 
         cDict = {} #Dictionnary of canvas
         effDict = {} #Store "Nominal efficiencies". Used to compute ratio
 
         theffDic = {}
-        if len(effList) == 1:
-            for eff in effList[0]:
+        if len(hrList) == 1:
+            for hr in hrList[0]:
+                eff =  hr.EffList
                 if not eff.heff: continue
                 effname = eff.name
                 c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
@@ -442,7 +466,7 @@ class HistoPloter:
                 theff.SetMarkerSize(20)
                 theff.SetLineWidth(2)
 
-                #if len(effList) == 1:#no ratio needed if only one efficiency
+                #if len(hrList) == 1:#no ratio needed if only one efficiency
                 c.cd()
                 theff.SetLineWidth(2)
                 theff.DrawCopy()
@@ -451,11 +475,25 @@ class HistoPloter:
                 print 'list len is 1'
                 #sys.exit()
 
-        elif effList > 1:
+        elif hrList > 1:
             #Store all the efficiencies grouped by name. The first one is the one that defined the num of all the ratios
             theffDic = {}
             theratioDic = {}
-            for effL in effList: 
+            thelegendList = []
+            lumientry = ''
+
+            for hr in hrList: 
+                effL = hr.EffList
+
+                if hr.Type == 'data':
+                    if lumientry == '':
+                        lumientry = 'Run'
+                    if hr.Info:
+                        lumientry += ' %s'%hr.Info
+
+                #make legend
+                legentry =  self.MakeLegend(hr)
+                thelegendList.append(legentry)
                 for eff in effL:
 
                     effname = eff.name
@@ -477,7 +515,8 @@ class HistoPloter:
                         theratioDic[effname].append(ratio) 
                         del den
 
-            print 'theffDic is', theffDic
+
+            #print 'theffDic is', theffDic
             for key in theffDic.keys():
 
                    c = ROOT.TCanvas('c_%s'%effname,'c_%s'%effname)
@@ -489,13 +528,38 @@ class HistoPloter:
                    t.cd()
 
                    theffDic[key][0].Draw('AP')
-#                   theffDic[key][0].GetXaxis().SetRangeUser(theratioDic[key][0].GetXaxis().GetBinLowEdge(1),theratioDic[key][0].GetXaxis().GetBinLowEdge(theratioDic[key][0].GetXaxis().GetNbins()))
                    xaxis = theratioDic[key][0].GetXaxis()
                    theffDic[key][0].GetXaxis().SetRangeUser(xaxis.GetBinLowEdge(1),xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
-                   #theffDic[key][0].GetXaxis().SetRangeUser(10,xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
                    self.SetPadParemeter(theffDic[key][0], 'up')
+                   count = 0
+
+                   #Legend
+                   leg = ROOT.TLegend(0.4, 0.6, 0.75 , 0.85)
+                   leg.SetHeader('some text')
+                   #This is causing the segfault
+                   header = leg.GetListOfPrimitives().First()
+                   header.SetTextColor(1)
+                   header.SetTextFont(43)
+                   header.SetTextSize(20)
+                   leg.SetTextFont(43)
+                   leg.SetTextSize(20)
+                   leg.SetBorderSize(0)
+
+                   print thelegendList
+                   if thelegendList[0]: leg.AddEntry(theffDic[key][0], str(thelegendList[0]),'LP')
+           
+                   index = 1
                    for effL in theffDic[key][1:]:
+                       print 'legentry is', thelegendList[index]
+                       if thelegendList[index]: leg.AddEntry(effL, thelegendList[index],'LP')
+                       index += 1
+                       self.SetHistoStyle(effL, count)
                        effL.Draw('P')
+
+                   leg.Draw()
+                   #leg.GetListOfPrimitives().ls()
+
+                   #sys.exit()
 
                    c.cd()
                    b = ROOT.TPad('b_%s'%effname,'b_%s'%effname, 0, 0., 1, 0.3)#bottom pad
@@ -509,10 +573,13 @@ class HistoPloter:
                    self.SetPadParemeter(theratioDic[key][0], 'down')
                    for rL in theratioDic[key][1:]:
                        rL.Draw('SAME')
-                       #for r in rL:
-                       #    r.Draw('SAME')
+                       self.SetHistoStyle(rL, count)
+                       count += 1
+
+                   ROOT.CMS_lumi(t, lumientry+'(13 TeV)', 11);
                    c.Update()
 
                    c.SaveAs(self.FormatOutputPath('%s/%s.pdf' %(directory,key)))
                    c.SaveAs(self.FormatOutputPath('%s/%s.png' %(directory,key)))
                    c.SaveAs(self.FormatOutputPath('%s/%s.root' %(directory,key)))
+                   

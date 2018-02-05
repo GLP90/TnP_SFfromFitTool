@@ -19,7 +19,7 @@ class Efficiency:
 
         #dimention of the efficiency
 
-    def addLumi(self, lumi):
+    def setLumi(self, lumi):
         '''Add luminosity. Used when ploting and summing efficiencies together'''
         self.lumi = lumi
 
@@ -48,7 +48,7 @@ class Efficiency:
         self.ProcessEff(eff.heff)
 
         self.addHist(self.AddGraph(self.heff, eff.heff, self.lumi, eff.lumi))
-        self.addLumi(self.lumi + eff.lumi)
+        self.setLumi(self.lumi + eff.lumi)
 
     def AddGraph(self, eff1, eff2, lumi1, lumi2):
         '''Return one single TGraphError that is the sum of eff1, and eff2. The sum is lumi-reweighted'''

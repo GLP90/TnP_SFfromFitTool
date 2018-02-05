@@ -13,6 +13,8 @@ class HistoReader:
         self.type_ = type_
         self.rooworksp = []
         self.fitResult = []
+        self.Type = None#can be data or mc
+        self.Info= None#in case of data, can give addtional information
         pass
 
     def readfile(self, inputTree):
@@ -328,9 +330,9 @@ class HistoReader:
         for eff in self.EffList:
             eff.CleanBigError(threshold)
 
-    def addLumi(self, lumi):
+    def setLumi(self, lumi):
         for eff in self.EffList:
-            eff.addLumi(lumi)
+            eff.setLumi(lumi)
 
     def Sum(self, hr2):
         '''Sum of two Historeader. Results in one historeader that sums up both luminosity. All the efficiency distributions are summed by lumi'''
@@ -339,10 +341,17 @@ class HistoReader:
                 if  eff1.name != eff2.name: continue
                 eff1.SumEfficiency(eff2)
 
+        #Add Run information (for legend)
+        self.Run = self.Info+ hr2.Info
+
     def DrawEfficiency(self):
         pass
 
-        
+    def setInfo(self, info):
+        self.Info= info  
+
+    def setType(self, t):        
+        self.Type = t
 
 if __name__ == "__main__":
     
