@@ -2,6 +2,7 @@ import ROOT
 #from collections import Counter
 import sys
 from Efficiency import Efficiency
+from Eff2DMap import Eff2DMap
 
 
 
@@ -19,6 +20,10 @@ class HistoReader:
         self.Type = None#can be data or mc
         self.Info= None#in case of data, can give addtional information
         self.ypar = None
+
+        #Member below only relevent for 2D efficiencies       
+        self.ylist = None #Array containing bins of secondary parameter. For 2D efficiency only
+        self.eff2D = None #Map containing 2D efficicies
         pass
 
     def readfile(self, inputTree):
@@ -48,6 +53,10 @@ class HistoReader:
                 print 'fit_eff_plots is not in the file'
                 effkey = False
             AllEffList = []
+
+            #Contain the list of bins
+            xlist= None
+            ylist= None 
             while (effkey):
                 eff_ = effdir.Get(effkey.GetName()).GetListOfPrimitives()
                 #Check if TH2D in list of primitive
@@ -59,15 +68,33 @@ class HistoReader:
                     if prim.ClassName() == 'TH2F':
                         #print 'It is a TH2F'
                         isTH2F = True 
+                        xylist = self.getXYAxis(effdir.Get(effkey.GetName()).GetPrimitive(prim.GetName()))
+                        xlist, ylist = xylist[0], xylist[1]
                         break
                     prim = primIter.Next()
 
                 if not isTH2F: AllEffList.append(effkey.GetName())
                 effkey = effKey.Next()
             self.EffRemover(AllEffList)
+
+
+            ##This is valide if 2D efficiency only
+            #print 'ylist is', ylist
+            #print 'xlist is', xlist
+            #print self.ypars
+
+            #if not xlist == None and not ylist == None:
+            #    if len(self.ypars) == len(ylist):
+            #        self.ylist = ylist
+
+            #    elif len(self.ypars) == len(xlist):
+            #        self.ylist = xlist
+            #    else:
+            #        print '@ERROR: The bin parameters have not been retrived properly. Aborting'
+
+
+            #print 'self.ylist is', self.ylist
             #sys.exit()
-
-
             for effkey in AllEffList:
                 if not effkey.startswith(self.xpar+'_PLOT'):
                     #print 'skiped key', effkey
@@ -75,6 +102,25 @@ class HistoReader:
 
                 cEff = effdir.Get(effkey)#TCanvas containing efficiency distribution
                 hEff = cEff.GetPrimitive('hxy_fit_eff')
+
+                ########
+                #Check what is the xpar and what is the ypar
+                if xlist != None or ylist != None:
+                    #print 'xlist is', xlist
+                    if hEff.GetN()+1 == len(xlist):
+                        self.ylist = ylist
+                        #self.xlist = xlist
+                    elif hEff.GetN()+1 == len(ylist):
+                        self.ylist = xlist
+                        #self.xlist = ylist
+                    else:
+                        print '@ERROR: The bin parameters have not been retrived properly. Aborting'
+
+                print self.ylist
+
+                    
+                #print hEff.GetN()
+                #$sys.exit()
                 
 
                 ###
@@ -112,8 +158,6 @@ class HistoReader:
                         subkey = keyInDir.Next()
                         continue
                   
-                    #print 'subkey name is', subkey.GetName()
-                    #print 'xpar is', self.xpar
                     xBin = int(subkey.GetName().split('%s_bin' %self.xpar)[1].split('_')[0])
 
                     ########
@@ -160,6 +204,11 @@ class HistoReader:
 
             key = nextkey.Next()
 
+        #Make 2D map to store the efficiency
+        if not self.ylist == None:
+            self.Make2DMap()
+        #sys.exit()
+
     def getBinNumber(self, s):
         binlist = []
         binStringList = s.split('bin')[1:]
@@ -177,11 +226,8 @@ class HistoReader:
         '''When making 2D efficiencies (e.g. pt X eta), all permutation are stored in the .root file. Here only one set of efficiency is keep. The selection criteria is: efficiencies are ploted wrt the  parameter with the largerst number of bins '''
         keyPrefixList = []
         for key in AllEffList:
-            #if key.endswith('PLOT'): continue # to ignore 2D maps
             keyPrefix = key.split('_PLOT')[0]
-            #if '_' in keyPrefix: continue
             keyPrefixList.append(keyPrefix)
-        #print 'keyPrefixList', keyPrefixList
 
         if len(keyPrefixList) > 0:
             self.xpar  = min(set(keyPrefixList), key=keyPrefixList.count)
@@ -236,9 +282,18 @@ class HistoReader:
         for eff in self.EffList:
             eff.SetNewRange(xmin, xmax)
 
+        #Redo 2D map to store the efficiency
+        if not self.ylist == None:
+            self.Make2DMap()
+
     def CleanBigError(self, threshold):
+
         for eff in self.EffList:
             eff.CleanBigError(threshold)
+
+        #Redo 2D map to store the efficiency
+        if not self.ylist == None:
+            self.Make2DMap()
 
     def setLumi(self, lumi):
         for eff in self.EffList:
@@ -262,6 +317,87 @@ class HistoReader:
 
     def setType(self, t):        
         self.Type = t
+
+    def getXYAxis(self, tg):
+        '''Takes a 2D graphs and returns bins for the X axis and Y axis'''
+        #Get X axis
+        xa = tg.GetXaxis()
+        ya = tg.GetYaxis()
+
+        nx = tg.GetNbinsX()
+        ny = tg.GetNbinsY()
+        
+        xlist = []
+        ylist = []
+        
+        for x in range(1,nx+2):
+            xlist.append(xa.GetBinLowEdge(x))
+
+        for y in range(1, ny+2):
+            ylist.append(ya.GetBinLowEdge(y))
+
+        return [xlist, ylist]
+
+    def Make2DMap(self):
+        '''In case Histomaker contains a 2D efficiency, makes a map of the efficincy'''
+        if self.ylist == None:
+            print '@ERROR: ylist is None. This is not a 2D efficiency. Aborting'
+
+        eff2D = Eff2DMap('test')
+
+        #Fill the ybins
+        eff2D.ybins = []
+        for y0, y1 in zip(self.ylist[:-1],self.ylist[1:]):
+            eff2D.ybins.append([y0,y1])
+
+
+        ##Read 1D eff one by one to fill the 2D map
+        for eff in self.EffList:
+            grVal = self.getGraphValue(eff.heff)
+
+            eff2D.nominal.append(grVal[1]) #adding ybins
+            eff2D.down.append(grVal[2]) #adding ybinsL
+            eff2D.up.append(grVal[3]) #adding ybinsH
+
+            eff2D.xbins = []
+            for x0, x1 in zip(grVal[0][:-1],grVal[0][1:]):
+                eff2D.xbins.append([x0,x1])
+        self.eff2D = eff2D
+
+    def getGraphValue(self, gr):
+        '''Read TGraph and returns all values'''
+
+        #xbins = []
+        xbinsL = [] 
+        #xbinsH = [] 
+        ybins = [] 
+        ybinsL = [] 
+        ybinsH = [] 
+
+        nbins = gr.GetN()
+        bins = range(0,nbins)
+        new_nbins = 0
+
+        for bin_ in bins:
+            x = ROOT.Double(999)
+            y = ROOT.Double(999)
+            gr.GetPoint(bin_,x,y)
+            x_hi = gr.GetErrorXhigh(bin_)
+            x_low = gr.GetErrorXlow(bin_)
+            y_hi = gr.GetErrorYhigh(bin_)
+            y_low = gr.GetErrorYlow(bin_)
+
+            xbinsL.append(x - x_low)
+            if bin_ == bins[-1]: 
+                xbinsL.append(x + x_hi)
+            ybins.append(y)
+            ybinsL.append(y_low)
+            ybinsH.append(y_hi)
+
+            new_nbins += 1
+
+        return [xbinsL, ybins, ybinsL, ybinsH] 
+        
 
 if __name__ == "__main__":
     
