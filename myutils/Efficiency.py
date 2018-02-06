@@ -2,6 +2,7 @@ import ROOT
 import numpy as np
 import sys
 import math
+import pdb
 
 class Efficiency:
     
@@ -58,7 +59,7 @@ class Efficiency:
 
         nbins = eff1.GetN()
         if nbins != eff2.GetN():
-            print "@ERROR: number of bins of efficieny don't match. Exiting"
+            print "@ERROR: number of efficiency bin do not match. Cannot sum the Graphs. Aborting"
             sys.exit()
 
         bins = range(0,nbins)
@@ -146,7 +147,7 @@ class Efficiency:
             ybinsH_ER= []
             for n, l, h in zip((range(0,new_nbins)), range(0,new_nbins), range(0,new_nbins)):
                 if ybinsL[l] > ybins[n]*error_threshold:
-                    print 'too large error, it is', ybinsL[l]
+                    print '@WARNING: too large error, it is', ybinsL[l]
                     ER_new = 999
                     if l == 0:
                         ER_new = ybinsL[1]
@@ -163,10 +164,10 @@ class Efficiency:
 
                 if ybinsH[l] > ybins[n]*error_threshold:
                     ER_new = 999
-                    print 'too large error, it is', ybinsH[l]
+                    print '@WARNING: too large error, it is', ybinsH[l]
                     if l == 0:
                         ER_new = ybinsH[1]
-                    elif l == new_nbins:
+                    elif l == new_nbins-1:
                         ER_new =  ybinsH[new_nbins-1]
                     else:
                         ER_new = 0.5*(ybinsH[l+1]+ybinsH[l-1])

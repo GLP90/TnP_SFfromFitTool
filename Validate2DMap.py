@@ -83,3 +83,28 @@ if __name__ == "__main__":
     eff2D.Print('up')
     eff2D.Print('down')
 
+    print 'To test the ratio'
+    print '----------------'
+
+    fileLoose = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_DE/MC_mcidDE/'+Id
+    hr_dataLoose = HistoReader('DataLoose')
+    hr_dataLoose.readfile(fileLoose)
+    hr_dataLoose.SetNewRange(20, 90)
+    hr_dataLoose.setLumi(10)
+    hr_dataLoose.setInfo('DE')
+    hr_dataLoose.setType('data')
+    hr_dataLoose.Sum(hr_dataDE)
+    print 'Den (num is the previous map)'
+    print '----------------'
+    eff2Den = hr_dataLoose.eff2D
+    eff2Den.Print()
+    eff2Den.Print('up')
+    eff2Den.Print('down')
+    print 'SF (after division)'
+    print '----------------'
+    ratioMap = eff2D.divideMap(eff2Den)
+    ratioMap.Print()
+    ratioMap.Print('up')
+    ratioMap.Print('down')
+
+

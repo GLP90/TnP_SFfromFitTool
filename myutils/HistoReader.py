@@ -20,6 +20,9 @@ class HistoReader:
         self.Type = None#can be data or mc
         self.Info= None#in case of data, can give addtional information
         self.ypar = None
+        #Name of the x and y parameter. Used for the Json
+        self.yparname = None
+        self.xparname = None
 
         #Member below only relevent for 2D efficiencies       
         self.ylist = None #Array containing bins of secondary parameter. For 2D efficiency only
@@ -66,7 +69,6 @@ class HistoReader:
                 isTH2F = False
                 while (prim):
                     if prim.ClassName() == 'TH2F':
-                        #print 'It is a TH2F'
                         isTH2F = True 
                         xylist = self.getXYAxis(effdir.Get(effkey.GetName()).GetPrimitive(prim.GetName()))
                         xlist, ylist = xylist[0], xylist[1]
@@ -77,51 +79,25 @@ class HistoReader:
                 effkey = effKey.Next()
             self.EffRemover(AllEffList)
 
-
-            ##This is valide if 2D efficiency only
-            #print 'ylist is', ylist
-            #print 'xlist is', xlist
-            #print self.ypars
-
-            #if not xlist == None and not ylist == None:
-            #    if len(self.ypars) == len(ylist):
-            #        self.ylist = ylist
-
-            #    elif len(self.ypars) == len(xlist):
-            #        self.ylist = xlist
-            #    else:
-            #        print '@ERROR: The bin parameters have not been retrived properly. Aborting'
-
-
-            #print 'self.ylist is', self.ylist
-            #sys.exit()
             for effkey in AllEffList:
                 if not effkey.startswith(self.xpar+'_PLOT'):
-                    #print 'skiped key', effkey
                     continue
 
                 cEff = effdir.Get(effkey)#TCanvas containing efficiency distribution
                 hEff = cEff.GetPrimitive('hxy_fit_eff')
 
                 ########
-                #Check what is the xpar and what is the ypar
+                #Only for 2D efficiencies
+                #Check what is the xpar and what is the ypar (to fill the range)
                 if xlist != None or ylist != None:
-                    #print 'xlist is', xlist
                     if hEff.GetN()+1 == len(xlist):
                         self.ylist = ylist
-                        #self.xlist = xlist
                     elif hEff.GetN()+1 == len(ylist):
                         self.ylist = xlist
-                        #self.xlist = ylist
                     else:
                         print '@ERROR: The bin parameters have not been retrived properly. Aborting'
 
                 print self.ylist
-
-                    
-                #print hEff.GetN()
-                #$sys.exit()
-                
 
                 ###
                 #Write info about yparams bins
@@ -236,6 +212,8 @@ class HistoReader:
         else: 
             self.xpar = 0 
             self.ypars = []
+        self.yparname = list(self.ypars)[0]
+        self.xparname = self.xpar
 
     def IsCurrentXparam(self, xpar, BinName):
         pass
@@ -309,6 +287,10 @@ class HistoReader:
         #Add Run information (for legend)
         self.Info = self.Info + hr2.Info
 
+        #Redo 2D map to store the efficiency
+        if not self.ylist == None:
+            self.Make2DMap()
+
     def DrawEfficiency(self):
         pass
 
@@ -343,7 +325,7 @@ class HistoReader:
         if self.ylist == None:
             print '@ERROR: ylist is None. This is not a 2D efficiency. Aborting'
 
-        eff2D = Eff2DMap('test')
+        eff2D = Eff2DMap('NUM_%s_DEN_%s'%(self.Num, self.Den))
 
         #Fill the ybins
         eff2D.ybins = []
@@ -362,14 +344,17 @@ class HistoReader:
             eff2D.xbins = []
             for x0, x1 in zip(grVal[0][:-1],grVal[0][1:]):
                 eff2D.xbins.append([x0,x1])
+
+        ##File parameter name
+        eff2D.xname = self.xparname
+        eff2D.yname = self.yparname
+
         self.eff2D = eff2D
 
     def getGraphValue(self, gr):
         '''Read TGraph and returns all values'''
 
-        #xbins = []
         xbinsL = [] 
-        #xbinsH = [] 
         ybins = [] 
         ybinsL = [] 
         ybinsH = [] 
