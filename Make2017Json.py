@@ -38,7 +38,6 @@ if __name__ == "__main__":
 
     Run = ['BC', 'DE', 'F']
     Type = ['mc', 'data']
-    Run = ['BC']
     Num = ['ISO', 'ID']
 
     NumDic = {'ISO':ISO, 'ID':ID}
@@ -66,6 +65,7 @@ if __name__ == "__main__":
                     hr = HistoReader('hr')
                     hr.readfile(file_)     
                     hr.SetNewRange(20, 120) 
+                    hr.setInfo('dummy')         
                     hr.CleanBigError(0.05)  
                     hr.setType(t)      
                     MapList.append(hr.eff2D)
@@ -110,6 +110,7 @@ if __name__ == "__main__":
                     hr.SetNewRange(20, 120) 
                     hr.setLumi(LumiDic[r])
                     hr.CleanBigError(0.05)  
+                    hr.setInfo('dummy')         
                     hr.setType(t)      
                     hrList.append(hr)
 
