@@ -130,7 +130,7 @@ class HistoPloter:
             if not w: continue
             nbin += 1
             mass = w.var('mass')
-            data = w.data('data')
+            data = w.data('data_binned')
 
             results = {}
             # KS_pf      = []
