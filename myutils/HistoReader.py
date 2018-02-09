@@ -143,7 +143,7 @@ class HistoReader:
                     canv = canvDir.Get('fit_canvas')
                     
                     self.fitResult.append(canvDir.Get('fitresults'))
-                    self.rooworksp.append(canvDir.Get('w'))
+                    self.rooworksp.append(canvDir.Get('red_w'))
 
                     nbin = self.getBinNumber(subkey.GetName())
                     self.histoFromCanvas(canv, xBin)
@@ -170,11 +170,11 @@ class HistoReader:
                     subdir =  subkey.ReadObj()
                     canv=subdir.Get('fit_canvas')
                     self.fitResult.append(subdir.Get('fitresults'))
-                    worksp = subdir.Get('w') if subdir.Get('w') else subdir.Get('')
+                    worksp = subdir.Get('red_w') if subdir.Get('red_w') else subdir.Get('')
                     for key2 in subdir.GetListOfKeys():
                         if (key2.InheritsFrom('RooWorkspace')): worksp = key2.ReadObj()
                     self.rooworksp.append(worksp)
-                    print 'rooworkspace', subdir.Get('w')
+                    print 'rooworkspace', subdir.Get('red_w')
                         
                     self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, None, None, None, None, None, None, None, self.fitResult, self.rooworksp))
 
