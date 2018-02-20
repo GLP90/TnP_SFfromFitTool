@@ -66,7 +66,7 @@ if __name__ == "__main__":
                     hr.readfile(file_)     
                     hr.SetNewRange(20, 120) 
                     hr.setInfo('dummy')         
-                    hr.CleanBigError(0.05)  
+                    hr.CleanBigError(0.01)  
                     hr.setType(t)      
                     MapList.append(hr.eff2D)
 

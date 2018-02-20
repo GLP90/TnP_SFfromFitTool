@@ -542,16 +542,16 @@ class HistoPloter:
                    count = 0
 
                    #Legend
-                   leg = ROOT.TLegend(0.4, 0.6, 0.75 , 0.75)
+                   leg = ROOT.TLegend(0.4, 0.65, 0.75 , 0.79)
                    headtext = ''
                    ypartext = ''
                    if dentext != '':
-                       dentext = '/%s'% numtext
+                       dentext = '%s'%dentext 
                    if theYparDic[key]:
                        ypartext = self.yParDic(theYparDic[key])
-                       headtext = '%s%s, %s'%(numtext, dentext, ypartext)
+                       headtext = '%s/%s, %s'%(numtext, dentext, ypartext)
                    else:
-                       headtext = '%s%s'%(numtext, dentext)
+                       headtext = '%s/%s'%(numtext, dentext)
 
                    theffDic[key][0].SetTitle(headtext)
 

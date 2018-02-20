@@ -146,37 +146,50 @@ class Efficiency:
             ybinsL_ER= []
             ybinsH_ER= []
             for n, l, h in zip((range(0,new_nbins)), range(0,new_nbins), range(0,new_nbins)):
+
+                ER_new_low = 999
+                ER_new_high = 999
+
                 if ybinsL[l] > ybins[n]*error_threshold:
                     print '@WARNING: too large error, it is', ybinsL[l]
-                    ER_new = 999
+                    ER_new_low = 999
                     if l == 0:
-                        ER_new = ybinsL[1]
+                        ER_new_low = ybinsL[1]
                     elif l == new_nbins:
-                        ER_new = ybinsL[new_nbins-1]
+                        ER_new_low = ybinsL[new_nbins-2]
                     else:
-                        ER_new = 0.5*(ybinsL[l+1]+ybinsL[l-1])
+                        ER_new_low = 0.5*(ybinsL[l+1]+ybinsL[l-1])
 
-                    print 'new error is', ER_new
+                    if ER_new_low > ybins[n]*error_threshold:
+                        print 'ER_new still higher after taking neighbour bin. Taking the min of the two errors'
+                        ER_new_low  = min(ybinsH[l], ybinsL[l])
 
-                    ybinsL_ER.append(ER_new)
+                    print 'new error is', ER_new_low
 
-                else: ybinsL_ER.append(ybinsL[l])
+                else: ER_new_low = ybinsL[l]
+
+                #else: ybinsL_ER.append(ybinsL[l])
 
                 if ybinsH[l] > ybins[n]*error_threshold:
-                    ER_new = 999
+                    ER_new_high = 999
                     print '@WARNING: too large error, it is', ybinsH[l]
                     if l == 0:
-                        ER_new = ybinsH[1]
+                        ER_new_high = ybinsH[1]
                     elif l == new_nbins-1:
-                        ER_new =  ybinsH[new_nbins-1]
+                        ER_new_high =  ybinsH[new_nbins-2]
                     else:
-                        ER_new = 0.5*(ybinsH[l+1]+ybinsH[l-1])
+                        ER_new_high = 0.5*(ybinsH[l+1]+ybinsH[l-1])
 
-                    print 'new error is',  ER_new
+                    if ER_new_high > ybins[n]*error_threshold:
+                        print 'ER_new still higher after taking neighbour bin. Taking the min of the two errors'
+                        ER_new_high = min(ybinsH[l], ybinsL[l])
 
-                    ybinsH_ER.append(ER_new)
+                    print 'new error is',  ER_new_high
 
-                else: ybinsH_ER.append(ybinsH[l])
+                else: ER_new_high = ybinsH[l]
+
+                ybinsL_ER.append(ER_new_low)
+                ybinsH_ER.append(ER_new_high)
 
             ybinsL = ybinsL_ER
             ybinsH = ybinsH_ER
