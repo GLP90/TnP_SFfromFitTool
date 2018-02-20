@@ -27,11 +27,18 @@ class HistoPloter:
         self.outputpath = outputpath
         self.effUpRange = 1.1
         self.effDownRange = 0.8
+        self.ratioDownRange = 0.85
+        self.ratioUpRange = 1.15
+        #h.GetYaxis().SetRangeUser(0.85,1.15)
         self.KSs      = [] 
         self.ADs      = [] 
         self.maxPulls = []
         self.chi2s    = []
         self.sFactors = []
+
+    def setRatioRange(self, ratioDownRange, ratioUpRange):
+        self.ratioDownRange = ratioDownRange
+        self.ratioUpRange = ratioUpRange
 
     def CreateOutputFolder(self, subfolder = None):
         '''Create output path to store the files if not existing'''
@@ -364,7 +371,7 @@ class HistoPloter:
         '''Set some style parameters for up/down pad. Used in PlotEff1D'''
 
         if s == 'up':
-            h.SetMarkerStyle(20)
+            h.SetMarkerStyle(22)
             h.SetMarkerColor(1)
             h.SetLineWidth(2)
             h.GetYaxis().SetTitle("Effciency")
@@ -386,7 +393,8 @@ class HistoPloter:
             h.SetLineColor(1)
             h.SetMarkerStyle(20)
             h.SetMarkerColor(1)
-            h.GetYaxis().SetRangeUser(0.85,1.15)
+            h.GetYaxis().SetRangeUser(self.ratioDownRange, self.ratioUpRange)
+            #h.GetYaxis().SetRangeUser(0.85,1.15)
             h.GetYaxis().SetTitle("DATA/MC")
             h.GetYaxis().SetNdivisions(505)
             h.GetYaxis().SetLabelSize(20)
@@ -403,8 +411,8 @@ class HistoPloter:
 
     def SetHistoStyle(self, h, index):
         '''Modify color and style of the plot'''
-        color = [4, 2, 6, 9, 12, 42]
-        marker= [22, 23, 21, 24, 26]
+        color = [4, 2, 6, 9, 50, 40, 30, 95, 51]
+        marker= [22, 23, 21, 33, 24, 26, 27, 36]
 
         h.SetMarkerStyle(marker[index])
         h.SetMarkerColor(color[index])
@@ -571,8 +579,6 @@ class HistoPloter:
                    latex.SetTextSize(20)
                    latex.DrawLatex(0.4,0.81, headtext)
 
-                   leg.SetTextFont(43)
-                   leg.SetTextSize(20)
                    leg.SetBorderSize(0)
 
                    #print thelegendList
@@ -582,10 +588,14 @@ class HistoPloter:
                    for effL in theffDic[key][1:]:
                        #print 'legentry is', thelegendList[index]
                        if thelegendList[index]: leg.AddEntry(effL, thelegendList[index],'LP')
-                       index += 1
-                       self.SetHistoStyle(effL, count)
+                       self.SetHistoStyle(effL, index)
                        effL.Draw('P')
+                       index += 1
 
+
+                   if index == 2:#For "standard" data/MC plots (nice big font)
+                       leg.SetTextFont(43)
+                       leg.SetTextSize(20)
                    leg.Draw()
 
                    c.cd()
@@ -610,8 +620,6 @@ class HistoPloter:
                    c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.pdf' %(directory,hrList[0].Num, hrList[0].Den, key)))
                    c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.png' %(directory,hrList[0].Num, hrList[0].Den,key)))
                    c.SaveAs(self.FormatOutputPath('%s/NUM_%s_DEN_%s_PAR_%s.root' %(directory,hrList[0].Num, hrList[0].Den,key)))
-
-                   del c
 
 
 ##############

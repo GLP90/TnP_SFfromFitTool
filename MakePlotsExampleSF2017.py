@@ -1,7 +1,11 @@
+#Make all the plots
+#
+
 import ROOT
 from myutils.HistoReader import HistoReader
 from myutils.HistoPloter import HistoPloter
 from myutils.Efficiency import Efficiency
+from myutils.JsonMaker import JsonMaker
 import sys
 
 #To run ROOT in batch mode
@@ -13,153 +17,149 @@ if __name__ == "__main__":
     ##################
 
 
-    #ID = [  'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root',
-    #        'TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root',
-    #        'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root',
-    #        'TnP_MC_NUM_HighPtID_DEN_genTracks_PAR_newpt_eta.root',
-    #        'TnP_MC_NUM_TrkHighPtID_DEN_genTracks_PAR_newpt_eta.root',
-    #        'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root',
-    #        'TnP_MC_NUM_MediumPromptID_DEN_genTracks_PAR_pt_eta.root'
-    #        ]
+    ID = [  
+            'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root',
+            'TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root',
+            'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root',
+            'TnP_MC_NUM_HighPtID_DEN_genTracks_PAR_newpt_eta.root',
+            'TnP_MC_NUM_TrkHighPtID_DEN_genTracks_PAR_newpt_eta.root',
+            'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root',
+            'TnP_MC_NUM_MediumPromptID_DEN_genTracks_PAR_pt_eta.root'
+            ]
 
-    ISO = [ 'TnP_MC_NUM_TightRelIso_DEN_MediumID_PAR_pt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_MediumID_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_LooseID_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root']
+    ISO = [ 
+    #        'TnP_MC_NUM_TightRelIso_DEN_MediumID_PAR_pt_eta.root',
+    #        'TnP_MC_NUM_LooseRelIso_DEN_MediumID_PAR_pt_eta.root',
+    #        'TnP_MC_NUM_TightRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
+    #        'TnP_MC_NUM_LooseRelIso_DEN_LooseID_PAR_pt_eta.root',
+    #        'TnP_MC_NUM_TightRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
+    #        'TnP_MC_NUM_LooseRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
+    #        'TnP_MC_NUM_LooseRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root',
+    #        'TnP_MC_NUM_LooseRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
+    #        'TnP_MC_NUM_TightRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root'
+    ]
 
-    ID = [  'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root']
-    #ID = ['TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root']
-    #ID = ['TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root']
-    #ID = ['TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root']
-    #ID = ['TnP_MC_NUM_HighPtID_DEN_genTracks_PAR_newpt_eta.root']
-    #ID = ['TnP_MC_NUM_TrkHighPtID_DEN_genTracks_PAR_newpt_eta.root']
-    #ID = ['TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root']
-    #ID = ['TnP_MC_NUM_MediumPromptID_DEN_genTracks_PAR_pt_eta.root']
+    Run = ['BC', 'DE', 'F']
+    Type = ['mc', 'data']
+    #Num = ['ISO', 'ID']
+    Num = ['ID']
+    #Num = ['ISO']
 
-    hr_data_List = []
+    #NumDic = {'ISO':ISO, 'ID':ID}
+    NumDic = {'ID':ID}
+    #NumDic = {'ISO':ISO}
+    LumiDic = {'BC':14.432, 'DE':13.503, 'F':13.433}
 
-    #for Id in ID+ISO:
-    for Id in ID:
-    #for Id in ISO:
-    
 
-        print 'Readind'
-        print '================'
-        print Id
-        print '================'
+    ##########
+    ##Provide Plots for run BC, DE and F
+    ##########
+    #for n in Num:
+    #    for r in Run: 
+    #        for s in NumDic[n]:
+    #            #All the rest will be within the json file
+    #            DATA_hr = None
+    #            MC_hr = None
+    #            for t in Type:
+    #                file_ = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/Efficiency%s_%s/%s_%sid%s/%s'%(n,r,t.upper(),t,r,s)
+    #                hr = HistoReader('%s%s'%(t,r))
+    #                hr.readfile(file_)     
+    #                hr.SetNewRange(20, 120) 
+    #                hr.setInfo(r)         
+    #                hr.CleanBigError(0.01)  
+    #                hr.setType(t)      
+    #                #For SF
+    #                if t == 'mc':
+    #                    MC_hr = hr
+    #                elif t == 'data':
+    #                    DATA_hr = hr
 
-        isid = True
-        if Id in ISO: isid = False
+    #            hp = HistoPloter('.')
+    #            #print 'going to plot'
+    #            hp.PlotEff1D([DATA_hr, MC_hr])
+    #            #print 's is', s
 
-         
-        #The argument in the HistoPloter is the path where the plots are going to be stored
-        hppath = '.'
+    #########
+    #Provide Plots separetly for run BCDEF
+    #########
+    for n in Num:
+        for s in NumDic[n]:
+            DATA_hrList = []
+            MC_hrList = []
+            for r in Run: 
+                #All the rest will be within the json file
+                for t in Type:
+                    file_ = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/Efficiency%s_%s/%s_%sid%s/%s'%(n,r,t.upper(),t,r,s)
+                    hr = HistoReader('%s%s'%(t,r))
+                    hr.readfile(file_)     
+                    hr.SetNewRange(20, 120) 
+                    hr.setInfo(r)         
+                    hr.CleanBigError(0.01)  
+                    hr.setLumi(LumiDic[r])
+                    hr.setType(t)      
+                    #For SF
+                    if t == 'mc':
+                        MC_hrList.append(hr)
+                    elif t == 'data':
+                        DATA_hrList.append(hr)
 
-        ##############
-        #DATA
-        ##############
+            DATA_hr = DATA_hrList[0]
+            MC_hr = MC_hrList[0]
+            for d in DATA_hrList[1:]:
+                DATA_hr.Sum(d)
 
-        #note: all the lumi taken from the table in 
-        #https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmV2017Analysis
-        #(With normtag)
+            for d in MC_hrList[1:]:
+                MC_hr.Sum(d)
 
-        if isid:
-            fileBC = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_BC/DATA_dataidBC/'+Id
-        else: 
-            fileBC = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_BC/DATA_dataidBC/'+Id
-        hr_dataBC = HistoReader('DataBC')#Name of the historeader 
-        hr_dataBC.readfile(fileBC)      #Inputfile: the Historeader reads all the efficiencies and fits
-        hr_dataBC.SetNewRange(20, 120)  #(optional) Only bins betwen 20 and 120 are kep (inclusive)
-        hr_dataBC.CleanBigError(0.05)   #(optional) Give a threhold for the maximum uncertainties allowed in the efficiency distributions. If too large, use average of neighbour bins
-        hr_dataBC.setLumi(14.432)       #(optional) Put the lumi of the run. Need to define this when addition efficiencies together
-        hr_dataBC.setInfo('BC')         #(optional) Give the run information. Used for legend. Can put whatever text you want.
-        hr_dataBC.setType('data')       #(optional) Can be either 'data' or 'MC'. Used for legend
+            hp = HistoPloter('.')
+            hp.PlotEff1D([DATA_hr, MC_hr])
 
-        if isid:
-            fileBC = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_BC/MC_mcidBC/'+Id
-        else:
-            fileF = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_BC/MC_mcidBC/'+Id
-        hr_mcBC = HistoReader('MCBC')
-        hr_mcBC.readfile(fileBC)      
-        hr_mcBC.SetNewRange(20, 120)  
-        hr_mcBC.CleanBigError(0.05)   
-        hr_mcBC.setLumi(14.432)       
-        hr_mcBC.setInfo('BC')         
-        hr_mcBC.setType('mc')
-        hp = HistoPloter(hppath)
-        hp.PlotEff1D([hr_dataBC, hr_mcBC])
-        del hp
-
-        if isid:
-           fileDE = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_DE/DATA_dataidDE/'+Id
-        else: 
-           fileDE = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_DE/DATA_dataidDE/'+Id
-        hr_dataDE = HistoReader('DataDE')
-        hr_dataDE.readfile(fileDE)
-        hr_dataDE.SetNewRange(20, 120)
-        hr_dataDE.CleanBigError(0.05)
-        hr_dataDE.setLumi(13.503)
-        hr_dataDE.setInfo('DE')
-        hr_dataDE.setType('data')
-        hr_dataBC.Sum(hr_dataDE)
-
-        if isid:
-            fileDE = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_DE/MC_mcidDE/'+Id
-        else:
-            fileDE = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_DE/MC_mcidDE/'+Id
-        hr_mcDE = HistoReader('MCDE')
-        hr_mcDE.readfile(fileDE)
-        hr_mcDE.SetNewRange(20, 120)
-        hr_mcDE.CleanBigError(0.05)
-        hr_mcDE.setLumi(13.503)
-        hr_mcDE.setInfo('DE')
-        hr_mcDE.setType('mc')
-
-        hp = HistoPloter(hppath)
-        hp.PlotEff1D([hr_dataDE, hr_mcDE])
-        del hp
-
-        hr_mcBC.Sum(hr_mcDE)
-
-        if isid:
-            fileF = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_F/DATA_dataidF/'+Id
-        else:
-            fileF = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_F/DATA_dataidF/'+Id
-
-        hr_dataF = HistoReader('DataF')
-        hr_dataF.readfile(fileF)
-        hr_dataF.SetNewRange(20, 120)
-        hr_dataF.CleanBigError(0.05)
-        hr_dataF.setLumi(13.433)
-        hr_dataF.setInfo('F')
-        hr_dataF.setType('data')
-        hr_dataBC.Sum(hr_dataF) #The efficiency distributions in hr_dataBC are now the lumi-reweigted sum of hr_dataBC, hr_dataDE, hr_dataF
- 
-        if isid:
-            fileF = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_F/MC_mcidF/'+Id
-        else:
-            fileF = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyISO_F/MC_mcidF/'+Id
-
-        hr_mcF = HistoReader('MCF')
-        hr_mcF.readfile(fileF)
-        hr_mcF.SetNewRange(20, 120)
-        hr_mcF.CleanBigError(0.05)
-        hr_mcF.setLumi(13.433)
-        hr_mcF.setInfo('F')
-        hr_mcF.setType('mc')
-
-        hp = HistoPloter(hppath)
-        hp.PlotEff1D([hr_dataF, hr_mcF])
-        del hp
-
-        hr_mcBC.Sum(hr_mcF) #The efficiency distributions in hr_mcF are now the lumi-reweigted sum of hr_mcBC, hr_mcDE, hr_mcF
-
-        ##Make 1D efficiency plots for multiple sample
-        #hp = HistoPloter(hppath)
-        #hp.PlotEff1D([hr_dataBC, hr_mcBC])
-
+#    #########
+#    #Will contain hr for run BC, DE and F to compute SF on BCDEF
+#    #########
+#    for n in Num:
+#        #Used for SF
+#        SF_MapList = []
+#        MC_MapList = []
+#        DATA_MapList = []
+#        SFoutputJSONname ='RunBCDEF_%s_%s'%('SF',n)
+#        jSF = JsonMaker(SFoutputJSONname)
+#        for t in Type:
+#            #All the rest will be within the json file
+#            outputJSONname ='RunBCDEF_%s_%s'%(t,n)
+#            j = JsonMaker(outputJSONname)
+#            MapList = []
+#            for s in NumDic[n]:
+#                #Contains hr from Run BC, DE and F that will be summed up at the end
+#                hrList = []
+#                for r in Run: 
+#                    file_ = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/Efficiency%s_%s/%s_%sid%s/%s'%(n,r,t.upper(),t,r,s)
+#                    hr = HistoReader('hr')
+#                    hr.readfile(file_)     
+#                    hr.SetNewRange(20, 120) 
+#                    hr.setLumi(LumiDic[r])
+#                    hr.CleanBigError(0.05)  
+#                    hr.setInfo('dummy')         
+#                    hr.setType(t)      
+#                    hrList.append(hr)
+#
+#                #lumi sum of all the hr
+#                hr0 = hrList[0]
+#                for hr in hrList[1:]:
+#                    hr0.Sum(hr)
+#
+#                MapList.append(hr0.eff2D)
+#
+#                #For SF
+#                if t == 'mc':
+#                    MC_MapList.append(hr0.eff2D)
+#                elif t == 'data':
+#                    DATA_MapList.append(hr0.eff2D)
+#            #For DATA, MC
+#            j.makeJSON(MapList)
+#
+#        #For SF
+#        for mcm, datam in zip(MC_MapList,DATA_MapList):
+#            SF_MapList.append(datam.divideMap(mcm))
+#
+#        jSF.makeJSON(SF_MapList)

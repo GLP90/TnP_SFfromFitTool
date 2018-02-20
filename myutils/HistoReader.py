@@ -153,7 +153,6 @@ class HistoReader:
                        #subkey = keyInDir.Next()
                     if "ratio" in subkey.GetName():
                         theHistoPlot = rootoutput.Get(key.GetTitle()+"/"+subkey.GetName())
-                        #efficienciesForThisID[subkey.GetName()] = getHistoContentInJson(theHistoPlot)
                     subkey = keyInDir.Next()
                     
                     #################
@@ -184,6 +183,7 @@ class HistoReader:
         if not self.ylist == None:
             self.Make2DMap()
         #sys.exit()
+        file.Close()
 
     def getBinNumber(self, s):
         binlist = []
