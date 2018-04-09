@@ -31,7 +31,7 @@ if __name__ == "__main__":
     
     #List of all the systematic variations 
     #sysList = ['main']
-    sysList = ['nominal', 'full stat', 'mass_up', 'mass_down', 'tag_up', 'tag_down', 'signalvar']
+    sysList = ['nominal', 'mass_up', 'mass_down', 'tag_up', 'tag_down', 'signalvar']
 
     #
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         for sys in sysList:
         #All the rest will be within the json file
             print t
-            if sys != 'full stat':
+            if sys != 'nominal':
                 file_ = '%s/Efficiency%s_%s_%s/%s_%sid%s_%s/%s'%(path_in[1],n,r,sys,t.upper(),t,r,sys,s)
             else: 
                 file_ = '%s/Efficiency%s_%s/%s_%sid%s/%s'%(path_in[0],n,r,t.upper(),t,r,s)
@@ -91,6 +91,8 @@ if __name__ == "__main__":
             hrList.append(hr)
         
         hp = HistoPloter('.')
+        ##Uncomment next line to have only min, max variations
+        #hp.MinMax = True
         hp.setRatioRange(0.98, 1.02)#Set the ratio range. Default one is 0.85, 1.15
         hp.PlotEff1D(hrList)#making the 1D plot
 
