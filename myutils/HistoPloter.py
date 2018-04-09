@@ -35,10 +35,15 @@ class HistoPloter:
         self.maxPulls = []
         self.chi2s    = []
         self.sFactors = []
+        #For sys study. Only thake minimum and maxium of the plot
+        self.MinMax = False
 
     def setRatioRange(self, ratioDownRange, ratioUpRange):
         self.ratioDownRange = ratioDownRange
         self.ratioUpRange = ratioUpRange
+    def setEffRange(self, effDownRange, effUpRange):
+        self.effUpRange = effUpRange
+        self.effDownRange = effDownRange
 
     def CreateOutputFolder(self, subfolder = None):
         '''Create output path to store the files if not existing'''
@@ -100,6 +105,98 @@ class HistoPloter:
             #print 'max error is', max_error
 
         return h
+
+    def GetMinMaxTH1F(self, THList, name=''):
+        '''Get list of histograms. Loops over each bin to compute max and min value, that are then returned'''
+
+        #print THList[0].ClassName()
+
+        #If list of TGraph (used for the eff plots)
+        if THList[0].ClassName() == 'TGraphAsymmErrors':
+
+            nbins = THList[0].GetN()
+            bins = range(0,nbins)
+            xbins       = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            xbinsL      = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            xbinsH      = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            MAXybins    = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            MINybins    = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            ybinsL      = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+            ybinsH      = np.array([0 for i in range(0,nbins)],dtype=np.float64)
+
+            for bin_ in bins:
+                x = ROOT.Double(999)
+                y = ROOT.Double(999)
+                THList[0].GetPoint(bin_,x,y)
+                x_hi = THList[0].GetErrorXhigh(bin_)
+                x_low = THList[0].GetErrorXlow(bin_)
+                xbins[bin_]     = x
+                xbinsH[bin_]    = x_hi
+                xbinsL[bin_]    = x_low
+
+            #h = ROOT.TH1F('h', 'h', nbins, xbins)
+
+            for bin_ in bins:
+                bmin = -99
+                bmax = 99
+                for gr in THList:
+                    num_y = ROOT.Double(999) 
+                    num_x = ROOT.Double(999) 
+
+                    gr.GetPoint(bin_,num_x,num_y)
+                    if bmin < num_y:
+                        bmin = num_y
+                    if bmax > num_y:
+                        bmax = num_y
+
+                MAXybins[bin_]  = bmax
+                MINybins[bin_]  = bmin
+
+
+            #print 'PRINTING ALL THE BINS'
+            #print xbins   
+            #print xbinsL  
+            #print xbinsH  
+            #print MAXybins
+            #print MINybins
+            #print ybinsL  
+            #print ybinsH  
+
+            #MAXybinsL = MAXybins 
+            #MAXybinsH = MAXybins
+            #MINybinsL = MINybins
+            #MINybinsH = MINybins
+
+            grlow   = ROOT.TGraphAsymmErrors(nbins, xbins, MINybins, xbinsL, xbinsH, ybinsL, ybinsH)
+            grhigh  = ROOT.TGraphAsymmErrors(nbins, xbins, MAXybins, xbinsL, xbinsH, ybinsL, ybinsH)
+            return [grlow, grhigh]
+
+        #If list of TH1 (used in the ratio)
+        else: 
+            histo = THList[0]
+            xaxis = histo.GetXaxis()
+            nbins = histo.GetNbinsX()
+            xbins = np.array([0 for i in range(0,nbins+1)],dtype=np.float64)
+            for bin_ in range(0,nbins+1):
+                xbins[bin_] = xaxis.GetBinLowEdge(bin_+1)
+
+            hlow = ROOT.TH1F('hlow_%s'%name, 'hlow_%s'%name, nbins, xbins)
+            hhigh = ROOT.TH1F('hhigh_%s'%name, 'hhigh_%s'%name, nbins, xbins)
+
+            for i in range(1,nbins+1):
+                bmin  = 99
+                bmax  = -99
+                for h in THList:
+                    bc = h.GetBinContent(i)
+                    if bc > bmax:
+                        bmax = bc
+                    if bc < bmin:
+                        bmin = bc
+                    hlow.SetBinContent(i, bmin)
+                    hhigh.SetBinContent(i, bmax)
+            return [hlow, hhigh]
+                
+
 
     def PlotFit(self, eff):
         '''Plot and save fits for a given efficiency'''
@@ -389,10 +486,10 @@ class HistoPloter:
             h.GetXaxis().SetLabelFont(43)
         elif s == 'down':
             h.SetTitle("")
-            h.SetLineWidth(2)
-            h.SetLineColor(1)
-            h.SetMarkerStyle(20)
-            h.SetMarkerColor(1)
+            #h.SetLineWidth(2)
+            #h.SetLineColor(1)
+            #h.SetMarkerStyle(20)
+            #h.SetMarkerColor(1)
             h.GetYaxis().SetRangeUser(self.ratioDownRange, self.ratioUpRange)
             #h.GetYaxis().SetRangeUser(0.85,1.15)
             h.GetYaxis().SetTitle("DATA/MC")
@@ -419,23 +516,27 @@ class HistoPloter:
         h.SetLineColor(color[index])
         h.SetLineWidth(2)
         
-    def MakeLegend(self, ht):
+    def MakeLegend(self, ht, option = None):
         '''Make legend of a specifique hr'''
-        print 'ht.Type is', ht.Type
+        #print 'ht.Type is', ht.Type
         if ht.Type == None:
             return None
 
         #if ht.Type == 'data': return 'DATA'
         #if ht.Type == 'MC': return 'MC'
 
+        Info = ht.Info
+        if option:
+            Info = option
+
         if ht.Type == 'data':
             if ht.Info:
-                return '%s %s' %('DATA', ht.Info)
+                return '%s %s' %('DATA', Info)
             else: 
                 return 'DATA'
         if ht.Type == 'mc':
             if ht.Info:
-                return '%s %s' %('MC', ht.Info)
+                return '%s %s' %('MC', Info)
             else:
                 return 'MC'
         sys.exit()
@@ -494,6 +595,9 @@ class HistoPloter:
             numtext = self.selDic(hrList[0].Num)
             dentext = self.selDic(hrList[0].Den)
             lumientry = ''
+            #For min and max
+            theffDicMinMax = {}
+            theratioDicMinMax = {}
 
             for hr in hrList: 
                 effL = hr.EffList
@@ -531,6 +635,32 @@ class HistoPloter:
                         theratioDic[effname].append(ratio) 
                         del den
 
+                ##Compute the maximal up/down variations for the ratio and the efficiency
+            #num_ = 0
+            if self.MinMax == True:
+                for hr in hrList: 
+                    effL = hr.EffList
+                    #make legend
+                    thelegendList = [self.MakeLegend(hr, 'nominal'), self.MakeLegend(hr, 'down'), self.MakeLegend(hr, 'up')]
+
+                    for eff in effL:
+                        effname = eff.name
+                        #UpDownEff = self.GetMinMaxTH1F(theffDic[effname],'%s_%i'%(effname,num_))
+                        #UpDownRatio = self.GetMinMaxTH1F(theratioDic[effname],'%s_%i'%(effname,num_))
+                        #theffDicMinMax[effname] = [copy.copy(theffDic[effname][0]), copy.copy(UpDownEff[0]), copy.copy(UpDownEff[1])]
+                        #theratioDicMinMax[effname] = [copy.copy(UpDownRatio[0]), copy.copy(UpDownRatio[1])]
+                        UpDownEff = self.GetMinMaxTH1F(theffDic[effname])
+                        UpDownRatio = self.GetMinMaxTH1F(theratioDic[effname])
+                        theffDicMinMax[effname] = [copy.copy(theffDic[effname][0]), copy.copy(UpDownEff[0]), copy.copy(UpDownEff[1])]
+                        theratioDicMinMax[effname] = [copy.copy(UpDownRatio[0]), copy.copy(UpDownRatio[1])]
+                #        num_ += 1
+
+                theffDic = theffDicMinMax
+                theratioDic = theratioDicMinMax
+
+            #print '-----------------------'
+            #print 'YEAHHHHHHHHHHHH'
+            #print '-----------------------'
 
             for key in theffDic.keys():
 
@@ -547,7 +677,6 @@ class HistoPloter:
                    theffDic[key][0].GetXaxis().SetRangeUser(xaxis.GetBinLowEdge(1),xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
                    self.SetPadParemeter(theffDic[key][0], 'up')
 
-                   count = 0
 
                    #Legend
                    leg = ROOT.TLegend(0.4, 0.65, 0.75 , 0.79)
@@ -563,13 +692,6 @@ class HistoPloter:
 
                    theffDic[key][0].SetTitle(headtext)
 
-                   #leg.SetHeader(headtext)
-                   ##This is causing the segfault
-                   #header = leg.GetListOfPrimitives().First()
-                   #header.SetTextColor(1)
-                   #header.SetTextFont(43)
-                   #header.SetTextSize(20)
-
                    latex = ROOT.TLatex()
                    latex.SetNDC()
                    latex.SetTextAngle(0)
@@ -584,13 +706,13 @@ class HistoPloter:
                    #print thelegendList
                    if thelegendList[0]: leg.AddEntry(theffDic[key][0], str(thelegendList[0]),'LP')
            
-                   index = 1
+                   index = 0
                    for effL in theffDic[key][1:]:
                        #print 'legentry is', thelegendList[index]
-                       if thelegendList[index]: leg.AddEntry(effL, thelegendList[index],'LP')
                        self.SetHistoStyle(effL, index)
-                       effL.Draw('P')
                        index += 1
+                       if thelegendList[index]: leg.AddEntry(effL, thelegendList[index],'LP')
+                       effL.Draw('P')
 
 
                    if index == 2:#For "standard" data/MC plots (nice big font)
@@ -607,12 +729,14 @@ class HistoPloter:
                    b.cd()
 
                    theratioDic[key][0].Draw()
+                   self.SetHistoStyle(theratioDic[key][0],0)
                    self.SetPadParemeter(theratioDic[key][0], 'down')
                    theratioDic[key][0].GetXaxis().SetTitle(self.xParDic(theXparDic[key]))
+                   index = 1
                    for rL in theratioDic[key][1:]:
                        rL.Draw('SAME')
-                       self.SetHistoStyle(rL, count)
-                       count += 1
+                       self.SetHistoStyle(rL, index)
+                       index += 1
 
                    ROOT.CMS_lumi(t, lumientry+'(13 TeV)', 11);
                    c.Update()
@@ -657,6 +781,8 @@ class HistoPloter:
                 'LooseRelIso':'Loose Iso',
                 'TightRelTkIso':'Tight Trk Iso',
                 'LooseRelTkIso':'Loose Trk Iso',
+                'TightIso4':'Tight Iso',
+                'UltraTightIso4':'Rel. Iso < 0.06',
                 }
 
         return dic[num]

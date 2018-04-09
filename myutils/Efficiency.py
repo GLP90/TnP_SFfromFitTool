@@ -155,7 +155,7 @@ class Efficiency:
                     ER_new_low = 999
                     if l == 0:
                         ER_new_low = ybinsL[1]
-                    elif l == new_nbins:
+                    elif l == new_nbins-1:
                         ER_new_low = ybinsL[new_nbins-2]
                     else:
                         ER_new_low = 0.5*(ybinsL[l+1]+ybinsL[l-1])
