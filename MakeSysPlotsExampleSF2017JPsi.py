@@ -19,14 +19,13 @@ if __name__ == "__main__":
     path_in = []
     #################
     #Path where the main SF root files are stored (using the full statistics)
-    path_in.append('/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017')
+    path_in.append('/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/')
     #%s_%s/%s_%sid%s/%s'%(n,r,t.upper(),t,r,s)
 
     ##################
     #Main path where all the root files are stored
     #path_in.append('/afs/cern.ch/user/f/fernanpe/public/for_Gael/Systematics_2017')
-    path_in.append('/afs/cern.ch/user/f/fernanpe/public/for_Gael/Systematics_2017_Full')
-
+    path_in.append('/afs/cern.ch/user/s/sfonseca/public/for_Gael/varied')
 
     
     #List of all the systematic variations 
@@ -38,38 +37,29 @@ if __name__ == "__main__":
     #ID = ['TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root']
 
     ID = [  
-            'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root',
-            'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root',
-            'TnP_MC_NUM_HighPtID_DEN_genTracks_PAR_newpt_eta.root',
-            'TnP_MC_NUM_TrkHighPtID_DEN_genTracks_PAR_newpt_eta.root',
+            #'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_eta.root',
+            #'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_vtx.root',
+            #'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt.root',
             'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root',
-            'TnP_MC_NUM_MediumPromptID_DEN_genTracks_PAR_pt_eta.root'
+            #'TnP_MC_NUM_SoftID_DEN_genTracks_PAR_eta.root',
+            #'TnP_MC_NUM_TightID_DEN_genTracks_PAR_eta.root',
+            'TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root',
+            #'TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt.root',
+            #'TnP_MC_NUM_TightID_DEN_genTracks_PAR_vtx.root',
+            #'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_vtx.root',
+            #'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_eta.root',
+            #'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt.root',
+            'TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root',
+            'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root',
+            #'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_vtx.root',
+            #'TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt.root',
             ]
 
-
-    ISO = [ 
-            'TnP_MC_NUM_TightRelIso_DEN_MediumID_PAR_pt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_MediumID_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_LooseID_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelTkIso_DEN_TrkHighPtID_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root',
-            'TnP_MC_NUM_LooseRelIso_DEN_TightIDandIPCut_PAR_pt_eta.root',
-            'TnP_MC_NUM_TightRelTkIso_DEN_HighPtIDandIPCut_PAR_newpt_eta.root'
-    ]
-
-
-    Run = ['BC', 'DE', 'F']
-    #Run = ['DE']
-    #Run = ['BC']
+    Run = ['BCDEF']
     Type = ['mc', 'data']
-    #Type = ['mc']
-    Num = ['ID', 'ISO']
-    #Num = ['ID']
+    Num = ['ID']
 
-    NumDic = {'ISO':ISO, 'ID':ID}
+    NumDic = {'ID':ID}
     LumiDic = {'BC':14.432, 'DE':13.503, 'F':13.433}
 
     def makePlots(n, r, s, t):
@@ -78,9 +68,11 @@ if __name__ == "__main__":
         #All the rest will be within the json file
             print t
             if sys != 'nominal':
-                file_ = '%s/Efficiency%s_%s_%s/%s_%sid%s_%s/%s'%(path_in[1],n,r,sys,t.upper(),t,r,sys,s)
+                #file_ = '%s/Efficiency%s_%s_%s/%s_%sid%s_%s/%s'%(path_in[1],n,r,sys,t.upper(),t,r,sys,s)
+                file_ = '%s/%s/EfficiencyRun2017B_F/%s_%s_all/%s'%(path_in[0],t.upper(),t,s)
             else: 
-                file_ = '%s/Efficiency%s_%s/%s_%sid%s/%s'%(path_in[0],n,r,t.upper(),t,r,s)
+                #file_ = '%s/Efficiency%s_%s/%s_%sid%s/%s'%(path_in[0],n,r,t.upper(),t,r,s)
+                file_ = '%s/EfficiencyRun2017B_F/%s_%s_all/%s'%(path_in[0],t.upper(),t,s)
             print 'file_ is', file_
             hr = HistoReader('RUN%s_%s%s%s'%(r,n,t,sys))
             hr.readfile(file_)     

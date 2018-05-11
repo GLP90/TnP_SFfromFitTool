@@ -138,9 +138,7 @@ class Efficiency:
             ybins.append(y)
             ybinsL.append(y_low)
             ybinsH.append(y_hi)
-
             new_nbins += 1
-
 
         if error_threshold:
             ybinsL_ER= []
@@ -201,6 +199,7 @@ class Efficiency:
         ybins_ =    np.array([i for i in ybins],dtype=np.float64)
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
+
 
         new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
         return new_gr

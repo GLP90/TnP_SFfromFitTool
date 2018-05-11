@@ -539,7 +539,7 @@ class HistoPloter:
                 return '%s %s' %('MC', Info)
             else:
                 return 'MC'
-        sys.exit()
+        #sys.exit()
 
 
     def PlotEff1D(self, hrList):
@@ -599,8 +599,12 @@ class HistoPloter:
             theffDicMinMax = {}
             theratioDicMinMax = {}
 
+            print '--------------'
+            print 'hrList is', hrList
             for hr in hrList: 
+                print 'hr is', hr
                 effL = hr.EffList
+                print 'yeah baby'
 
                 if hr.Type == 'data':
                     if lumientry == '':
@@ -609,13 +613,19 @@ class HistoPloter:
                         lumientry += ' %s'%hr.Info
 
                 #make legend
+                print 'check'
                 legentry =  self.MakeLegend(hr)
+                print 'aha'
                 thelegendList.append(legentry)
+                print 'debug baby'
 
+                print 'effL is', effL
                 for eff in effL:
 
                     effname = eff.name
 
+                    print 'effname is',effname
+                    #print 'theffDic is', theffDic
                     if not effname in theffDic:
                         theffDic[effname] = []
                         theratioDic[effname] = []
@@ -626,9 +636,11 @@ class HistoPloter:
                     theffDic[effname].append(theff)
                     theXparDic[effname] = eff.xpar
                     theYparDic[effname] = eff.ypar
+                    print 'theffDic[effname]', theffDic[effname]
 
                     #Compute ratio
                     if len(theffDic[effname]) > 1:
+                        print 'I AM GOING TO COMPUTE THE RATIO'
                         ratio = copy.copy(self.TGraph2TH1F(theffDic[effname][0])) 
                         den = copy.copy(self.TGraph2TH1F(theffDic[effname][-1]))
                         ratio.Divide(den)
@@ -658,10 +670,6 @@ class HistoPloter:
                 theffDic = theffDicMinMax
                 theratioDic = theratioDicMinMax
 
-            #print '-----------------------'
-            #print 'YEAHHHHHHHHHHHH'
-            #print '-----------------------'
-
             for key in theffDic.keys():
 
                    c = ROOT.TCanvas('c_%s'%key,'c_%s'%key)
@@ -673,6 +681,8 @@ class HistoPloter:
                    t.cd()
 
                    theffDic[key][0].Draw('AP')
+                   print 'theratioDic',theratioDic
+                   print 'the key is', key
                    xaxis = theratioDic[key][0].GetXaxis()
                    theffDic[key][0].GetXaxis().SetRangeUser(xaxis.GetBinLowEdge(1),xaxis.GetBinLowEdge(xaxis.GetNbins()+1))
                    self.SetPadParemeter(theffDic[key][0], 'up')
@@ -783,6 +793,11 @@ class HistoPloter:
                 'LooseRelTkIso':'Loose Trk Iso',
                 'TightIso4':'Tight Iso',
                 'UltraTightIso4':'Rel. Iso < 0.06',
+                'IsoMu27':'IsoMu27',
+                'hlt_Mu17Mu8_leg17':'IsoMu17',
+                'LooseIDnISO':'Loose ID+ISO',
+                'empty':''
                 }
 
+        print 'num is', num
         return dic[num]

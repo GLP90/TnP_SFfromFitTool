@@ -66,13 +66,21 @@ class Eff2DMap:
             for x in range(0, len(self.xbins)):
                 xpar = '%s:[%.2f,%.2f]'%(self.xname, self.xbins[x][0], self.xbins[x][1])
                 nom = self.nominal[y][x]
-                if not self.sf: 
-                    err = (math.sqrt(self.up[y][x]**2 +self.down[y][x]**2))
-                else: 
-                    if not self.up[y][x] == self.down[y][x]:
-                        print '@ERROR: SF map but self.down != self.up. Aborting'
-                    err = self.up[y][x]
-                data[par_pair][ypar][xpar] = {'value':nom, 'error':err}
+                #case of null value
+                if self.up[y][x] == -1 and self.down[y][x] == -1:
+                    err = -1
+                else:
+                    if not self.sf: 
+                        err = (math.sqrt(self.up[y][x]**2 +self.down[y][x]**2))
+                    else: 
+                        if not self.up[y][x] == self.down[y][x]:
+                            print '@ERROR: SF map but self.down != self.up. Aborting'
+                        err = self.up[y][x]
+                if nom == -1 and err == -1:
+                    data[par_pair][ypar][xpar] = {'value':'null', 'error':'null'}
+                    print '@INFO: values for', ypar, 'and', xpar, 'are null. The fit is probably empty'
+                else:
+                    data[par_pair][ypar][xpar] = {'value':nom, 'error':err}
 
         return data
 
@@ -102,13 +110,21 @@ class Eff2DMap:
             up.append([])
             down.append([])
             for x in range(0, len(self.xbins)):
-                #Compute nominal value
                 nn, dn = self.nominal[y][x], effmap.nominal[y][x]
-                nominal[y].append(nn/dn)
+                #-1 values are filed in the map when the fit has empty bins
+                if nn != -1 and dn != -1 and dn !=0:
+                    nominal[y].append(nn/dn)
+                else: 
+                    #this will be a null value in the json
+                    nominal[y].append(-1)
 
                 #Compute error 
-                nu, nd, du, dd = self.up[y][x], self.down[y][x], effmap.up[y][x], effmap.down[y][x]
-                err = math.sqrt( (nu/dn)**2 + (nd/dn)**2 + (du/(dn**2))**2  + (dd/(dn**2))**2 )
+                if nn != -1 and dn != -1 and dn !=0:
+                    nu, nd, du, dd = self.up[y][x], self.down[y][x], effmap.up[y][x], effmap.down[y][x]
+                    err = math.sqrt( (nu/dn)**2 + (nd/dn)**2 + (du/(dn**2))**2  + (dd/(dn**2))**2 )
+                else: 
+                    #this will be a null value in the json
+                    err = -1
                 up[y].append(err)
                 down[y].append(err)
 

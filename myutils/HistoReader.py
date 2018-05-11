@@ -89,15 +89,32 @@ class HistoReader:
                 ########
                 #Only for 2D efficiencies
                 #Check what is the xpar and what is the ypar (to fill the range)
+                #print 'xlist',xlist
+                #print 'ylist',ylist
                 if xlist != None or ylist != None:
-                    if hEff.GetN()+1 == len(xlist):
+                    #print 'hEff.GetN()+1', hEff.GetN()+1
+                    #print 'len(xlist)', len(xlist)
+                    #print 'len(ylist)', len(ylist)
+                    #a = hEff.GetXaxis()
+                    #print 'number axis bins', a.GetNbins()
+                    #print self.getGraphValue(hEff)[0]
+                    #print xlist
+                    #print self.contained(self.getGraphValue(hEff)[0], xlist)
+                    #for i in range(0,a.GetNbins()):
+                    #    print 'low'
+                    #    print  a.GetBinLowEdge(i)
+                    #    print 'center'
+                    #    print a.GetBinCenter(i)
+
+                    # the contained part is necessary in case some of the bins are empty (due to missing stats)
+                    if hEff.GetN()+1 == len(xlist) or self.contained(self.getGraphValue(hEff)[0], xlist):
                         self.ylist = ylist
-                    elif hEff.GetN()+1 == len(ylist):
+                    elif hEff.GetN()+1 == len(ylist) or self.contained(self.getGraphValue(hEff)[0], xlist):
                         self.ylist = xlist
                     else:
                         print '@ERROR: The bin parameters have not been retrived properly. Aborting'
 
-                print self.ylist
+                #print self.ylist
 
                 ###
                 #Write info about yparams bins
@@ -141,12 +158,18 @@ class HistoReader:
                     ########
                     canvDir = rootoutput.GetDirectory(key.GetTitle()+"/"+subkey.GetName())
                     canv = canvDir.Get('fit_canvas')
+                    if not canv:
+                        print '%s has not been created. Fit is empty (probably due to low stats'%(key.GetTitle()+"/"+subkey.GetName())
                     
-                    self.fitResult.append(canvDir.Get('fitresults'))
-                    self.rooworksp.append(canvDir.Get('w'))
+                    if canv:
+                        self.fitResult.append(canvDir.Get('fitresults'))
+                        self.rooworksp.append(canvDir.Get('w'))
 
                     nbin = self.getBinNumber(subkey.GetName())
-                    self.histoFromCanvas(canv, xBin)
+                    if canv:
+                        self.histoFromCanvas(canv, xBin)
+
+                    del canv
                     
                     ###########
 
@@ -201,10 +224,12 @@ class HistoReader:
     def EffRemover(self, AllEffList):
         '''When making 2D efficiencies (e.g. pt X eta), all permutation are stored in the .root file. Here only one set of efficiency is keep. The selection criteria is: efficiencies are ploted wrt the  parameter with the largerst number of bins '''
         keyPrefixList = []
+        #print 'AllEffList is', AllEffList
         for key in AllEffList:
             keyPrefix = key.split('_PLOT')[0]
             keyPrefixList.append(keyPrefix)
 
+        #print 'keyPrefixList is', keyPrefixList
         if len(keyPrefixList) > 0:
             self.xpar  = min(set(keyPrefixList), key=keyPrefixList.count)
             self.ypars = set(keyPrefixList)
@@ -212,7 +237,9 @@ class HistoReader:
         else: 
             self.xpar = 0 
             self.ypars = []
-        self.yparname = list(self.ypars)[0]
+        #print 'self.ypars are', self.ypars
+        if len(self.ypars) > 0:
+            self.yparname = list(self.ypars)[0]
         self.xparname = self.xpar
 
     def IsCurrentXparam(self, xpar, BinName):
@@ -332,8 +359,8 @@ class HistoReader:
         for y0, y1 in zip(self.ylist[:-1],self.ylist[1:]):
             eff2D.ybins.append([y0,y1])
 
-
         ##Read 1D eff one by one to fill the 2D map
+        eff2D.xbins = []
         for eff in self.EffList:
             grVal = self.getGraphValue(eff.heff)
 
@@ -341,15 +368,30 @@ class HistoReader:
             eff2D.down.append(grVal[2]) #adding ybinsL
             eff2D.up.append(grVal[3]) #adding ybinsH
 
-            eff2D.xbins = []
+            xbins_new = []
             for x0, x1 in zip(grVal[0][:-1],grVal[0][1:]):
-                eff2D.xbins.append([x0,x1])
+                #eff2D.xbins.append([x0,x1])
+                xbins_new.append([x0,x1])
+            if len(xbins_new) >= len(eff2D.xbins):
+                eff2D.xbins = xbins_new
 
         ##File parameter name
         eff2D.xname = self.xparname
         eff2D.yname = self.yparname
+        self.CleanMissingValues(eff2D)
 
         self.eff2D = eff2D
+
+    def CleanMissingValues(self, Map2D):
+        '''In case the fit was empty in some particluar bins in a 2D map, replace those values by 0'''
+        for y in range(0,len(Map2D.ybins)):
+            for x in range(0,len(Map2D.xbins)):
+                if len(Map2D.nominal[y]) <= x: 
+                    Map2D.nominal[y].append(-1)
+                    Map2D.down[y].append(-1)
+                    Map2D.up[y].append(-1)
+        return Map2D
+                #print 'will print all the bins'
 
     def getGraphValue(self, gr):
         '''Read TGraph and returns all values'''
@@ -382,6 +424,14 @@ class HistoReader:
             new_nbins += 1
 
         return [xbinsL, ybins, ybinsL, ybinsH] 
+    def contained(self, candidate, container):
+        temp = container[:]
+        try:
+            for v in candidate:
+                temp.remove(v)
+            return True
+        except ValueError:
+            return False
         
 
 if __name__ == "__main__":
