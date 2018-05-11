@@ -318,6 +318,20 @@ class HistoReader:
         if not self.ylist == None:
             self.Make2DMap()
 
+    def Divide(self, hr2):
+        '''Divide two Historeader. The historeader no longer stores efficiency but SF (in case of MC divided by data)'''
+        for eff1 in self.EffList:
+            for eff2 in hr2.EffList:
+                eff1.DivideEfficiency(eff2)
+                #if  eff1.name != eff2.name: continue
+
+        ##Add Run information (for legend)
+        #self.Info = self.Info + hr2.Info
+
+        ##Redo 2D map to store the efficiency
+        #if not self.ylist == None:
+        #    self.Make2DMap()
+
     def DrawEfficiency(self):
         pass
 
@@ -424,6 +438,7 @@ class HistoReader:
             new_nbins += 1
 
         return [xbinsL, ybins, ybinsL, ybinsH] 
+
     def contained(self, candidate, container):
         temp = container[:]
         try:

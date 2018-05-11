@@ -47,8 +47,82 @@ class Efficiency:
         self.addHist(self.AddGraph(self.heff, eff.heff, self.lumi, eff.lumi))
         self.setLumi(self.lumi + eff.lumi)
 
-    def AddGraph(self, eff1, eff2, lumi1, lumi2):
+    def DivideEfficiency(self, eff):
+
+        self.addHist(self.DivideGraph(self.heff, eff.heff))
+
+    def DivideGraph(self, eff1, eff2):
         '''Return one single TGraphError that is the sum of eff1, and eff2. The sum is lumi-reweighted'''
+
+        xbins = []
+        xbinsL = [] 
+        xbinsH = [] 
+        ybins = [] 
+        ybinsL = [] 
+        ybinsH = [] 
+
+        nbins = eff1.GetN()
+        #if nbins != eff2.GetN():
+        #    print "@ERROR: number of efficiency bin do not match. Cannot sum the Graphs. Aborting"
+        #    sys.exit()
+
+        #note: current fix only works if all missing pt bins are in high pT
+        bins = range(0,max(nbins,eff2.GetN()))
+        #bins = range(0,nbins)
+        new_nbins = 0
+        for bin_ in bins:
+            print 'bin is', bin_
+            #x1, x2 = ROOT.Double(999), ROOT.Double(999)
+            x, x2 = ROOT.Double(999), ROOT.Double(999)
+            y1, y2 = ROOT.Double(999), ROOT.Double(999)
+
+            filled1 = eff1.GetPoint(bin_, x, y1)
+            filled2 = eff2.GetPoint(bin_, x2, y2) 
+
+            if filled1  == -1 or filled2 == -1:
+                y_hi1, y_hi2    = 0,0
+                y_low1, y_low2  = 0,0
+                y1, y2 = 0, 1
+
+                if filled1 != -1:
+                    x_hi = eff1.GetErrorXhigh(bin_)
+                    x_low = eff1.GetErrorXlow(bin_)
+                elif filled2 != -1:
+                    x_hi = eff2.GetErrorXhigh(bin_)
+                    x_low = eff2.GetErrorXlow(bin_)
+                else: continue
+
+            else:
+                y_hi1, y_hi2    = eff1.GetErrorYhigh(bin_),eff2.GetErrorYhigh(bin_),
+                y_low1, y_low2  = eff1.GetErrorYlow(bin_), eff2.GetErrorYlow(bin_),
+                x_hi = eff1.GetErrorXhigh(bin_)
+                x_low = eff1.GetErrorXlow(bin_)
+                x_hi2 = eff2.GetErrorXhigh(bin_)
+                x_low2 = eff2.GetErrorXlow(bin_)
+
+
+            xbins.append(x)
+            xbinsL.append(x_low)
+            xbinsH.append(x_hi)
+            ybins.append(y1/y2)
+            ybinsL.append(math.sqrt((y_low1/y2)**2+(y1*y_low2/(y2*y2))**2))
+            ybinsH.append(math.sqrt((y_hi1/y2)**2+(y1*y_hi2/(y2*y2))**2))
+            new_nbins += 1
+
+        print 'finish the loop'
+
+        #Set all the bins to create new function 
+        xbins_ =    np.array([i for i in xbins],dtype=np.float64)
+        xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
+        xbinsH_ =   np.array([i for i in xbinsH],dtype=np.float64)
+        ybins_ =    np.array([i for i in ybins],dtype=np.float64)
+        ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
+        ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
+
+        new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        return new_gr
+
+    def AddGraph(self, eff1, eff2, lumi1, lumi2):
 
         xbins = []
         xbinsL = [] 

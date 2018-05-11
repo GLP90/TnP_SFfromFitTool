@@ -539,6 +539,8 @@ class HistoPloter:
                 return '%s %s' %('MC', Info)
             else:
                 return 'MC'
+        else:
+            return ht.Type
         #sys.exit()
 
 
@@ -613,11 +615,8 @@ class HistoPloter:
                         lumientry += ' %s'%hr.Info
 
                 #make legend
-                print 'check'
                 legentry =  self.MakeLegend(hr)
-                print 'aha'
                 thelegendList.append(legentry)
-                print 'debug baby'
 
                 print 'effL is', effL
                 for eff in effL:
