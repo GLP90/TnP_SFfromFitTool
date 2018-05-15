@@ -183,6 +183,9 @@ class HistoReader:
                     #################
                     ##BinName = subkey.GetName()
                 self.orderFitHisto()
+                print '-----------'
+                print 'checking efficiency bins'
+                self.getGraphValue(hEff)
                 self.EffList.append(Efficiency(self.rawname, self.type_,  effkey, hEff, self.xpar, self.ypars, self.ypar, self.hpassing, self.funcpassing, self.hfailing, self.funcfailing, self.fitResult, self.rooworksp))
             if len(AllEffList) == 0:
                 # try at least to recover the workspaces
@@ -203,8 +206,8 @@ class HistoReader:
             key = nextkey.Next()
 
         #Make 2D map to store the efficiency
-        if not self.ylist == None:
-            self.Make2DMap()
+        #if not self.ylist == None:
+        #    self.Make2DMap()
         #sys.exit()
         file.Close()
 
@@ -322,15 +325,8 @@ class HistoReader:
         '''Divide two Historeader. The historeader no longer stores efficiency but SF (in case of MC divided by data)'''
         for eff1 in self.EffList:
             for eff2 in hr2.EffList:
+                if  eff1.name != eff2.name: continue
                 eff1.DivideEfficiency(eff2)
-                #if  eff1.name != eff2.name: continue
-
-        ##Add Run information (for legend)
-        #self.Info = self.Info + hr2.Info
-
-        ##Redo 2D map to store the efficiency
-        #if not self.ylist == None:
-        #    self.Make2DMap()
 
     def DrawEfficiency(self):
         pass
@@ -425,6 +421,7 @@ class HistoReader:
             gr.GetPoint(bin_,x,y)
             x_hi = gr.GetErrorXhigh(bin_)
             x_low = gr.GetErrorXlow(bin_)
+            #print 'y is', y
             y_hi = gr.GetErrorYhigh(bin_)
             y_low = gr.GetErrorYlow(bin_)
 
@@ -436,6 +433,12 @@ class HistoReader:
             ybinsH.append(y_hi)
 
             new_nbins += 1
+
+        #print 'this is getGraphValue'
+        #print xbinsL
+        #print ybins
+        #print ybinsL
+        #print ybinsH
 
         return [xbinsL, ybins, ybinsL, ybinsH] 
 

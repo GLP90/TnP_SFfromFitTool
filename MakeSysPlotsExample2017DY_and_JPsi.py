@@ -8,6 +8,7 @@ from myutils.Efficiency import Efficiency
 from myutils.JsonMaker import JsonMaker
 from  multiprocessing import Process
 import time
+import sys
 #import sys as SYS
 
 #To run ROOT in batch mode
@@ -42,76 +43,144 @@ if __name__ == "__main__":
 
         return hr
 
-    ######################
-    #Compare the efficiency
-    ######################
+    #######################
+    ##Compare the efficiency
+    #######################
 
 
-    ############To make efficiency comparison
-    #This is a list of historeader. All the historeader in this list will be ploted simultaneously
-    hrList = []
-
-    #Histogram from DY
-    runList = ['BC', 'DE', 'F']
-    lumiDic = {'BC':14.432, 'DE':13.503, 'F':13.433}
-    file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
-    name = 'DY'
-
-    hr = GetSumLumihr(lumiDic, runList, file, name, 'DY')
-    hr.SetNewRange(20, 40) 
-    hrList.append(hr)
-
-
-    #file for loose J/Psi: 
-    file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
-    hr = Gethr( '1', 'BCDEF', file, 'JPsi', 'Jpsi')
-    hrList.append(hr)
-    
-    hp = HistoPloter('.')
-    hp.PlotEff1D(hrList)#making the 1D plot
-
-
-    ######################
-    #Compare the SF (work in progess..., do not use now)
-    ######################
+    #############To make efficiency comparison
+    ##This is a list of historeader. All the historeader in this list will be ploted simultaneously
+    #hrList = []
 
     ##Histogram from DY
     #runList = ['BC', 'DE', 'F']
     #lumiDic = {'BC':14.432, 'DE':13.503, 'F':13.433}
-
-    #file_data = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    ###MC
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
     #name = 'DY'
 
-    #hr_data = GetSumLumihr(lumiDic, runList, file_data, name)
-    #print 'debug 1'
-
-    #file_mc = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
-    #hr_mc = GetSumLumihr(lumiDic, runList, file_mc, name)
-    #print 'debug 2'
-
-    #hr_SF_DY = hr_data.Divide(hr_mc)
-    #print 'debug 3'
+    #hr = GetSumLumihr(lumiDic, runList, file, name, 'DY')
+    #hr.SetNewRange(20, 40) 
+    #hrList.append(hr)
 
 
-    ##on DY
-
-    ##on J/Psi
-    ##Make data hr
-    #file_data = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
-    #hr_data = Gethr('1', 'BCDEF', file_data, 'JPsi')
-    ##hr_data.SetNewRange(20, 40) 
-    #print 'debug'
-
-    #file_mc = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
-    #hr_mc = Gethr('1', 'BCDEF', file_mc, 'JPsi')
-    ##hr_mc.SetNewRange(20, 40) 
-
-    #hr_SF_JPsi = hr_data.Divide(hr_mc)
-    #hr_SF_JPsi.SetNewRange(20, 40) 
-
+    ##file for loose J/Psi: 
+    ###DATA
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    ###MC
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    ##file = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    #hr = Gethr( '1', 'BCDEF', file, 'JPsi', 'Jpsi')
+    #hrList.append(hr)
+    #
     #hp = HistoPloter('.')
-    ##hp.PlotEff1D([hr_SF_DY, hr_SF_JPsi])
-    ##hp.PlotEff1D([hr_SF_DY])
+    #hp.PlotEff1D(hrList)#making the 1D plot
+
+
+    ######################
+    #Compare the SF 
+    ######################
+
+    #Histogram from DY
+    runList = ['BC', 'DE', 'F']
+    lumiDic = {'BC':14.432, 'DE':13.503, 'F':13.433}
+
+    #Loose
+    #file_data = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    #Tight
+    file_data = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    #Medium
+    #file_data = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    #Soft
+    #file_data = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/DATA_dataidRUN/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    name = 'DY'
+    hr_data = GetSumLumihr(lumiDic, runList, file_data, name, name)
+    hr_data.SetNewRange(20, 40) 
+
+    #Loose
+    #file_mc = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    #Tight
+    file_mc = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    #Medium
+    #file_mc = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    #Soft
+    #file_mc = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/EfficiencyID_RUN/MC_mcidRUN/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    hr_mc = GetSumLumihr(lumiDic, runList, file_mc, name, name)
+    hr_mc.SetNewRange(20, 40) 
+
+    print 'I am going to divide'
+    hr_mc.Divide(hr_data)
+    
+    hr_DY_SF = hr_mc
+    #hr_DY_SF.SetNewRange(20, 40) 
+    #hr_DY_SF.setInfo('DY SF')         
+    hr_data = None
+    hr_mc = None
+
+    #on J/Psi
+    print '===================='
+    print 'debug'
+    print '===================='
+    #Loose
+    #file_data = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    #Tight
+    file_data = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    #Medium
+    #file_data = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    #Soft
+    #file_data = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/DATA_data_all/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    
+    hr_data = Gethr('1', 'BCDEF', file_data, 'JPsi', 'JPsi')
+    print '===================='
+    print 'set new range in data'
+    print '===================='
+    #hr_data.SetNewRange(20, 40) 
+    #sys.exit()
+
+    #Loose
+    #file_mc = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_LooseID_DEN_genTracks_PAR_pt_eta.root'
+    #Tight
+    file_mc = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_TightID_DEN_genTracks_PAR_pt_eta.root'
+    #Medium
+    #file_mc = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_MediumID_DEN_genTracks_PAR_pt_eta.root'
+    #Soft
+    #file_mc = '/afs/cern.ch/user/s/sfonseca/public/for_Gael/nominal/EfficiencyRun2017B_F/MC_mc_all/TnP_MC_NUM_SoftID_DEN_genTracks_PAR_pt_eta.root'
+    hr_mc = Gethr('1', 'BCDEF', file_mc, 'JPsi', 'JPsi')
+    #sys.exit()
+    print '===================='
+    print 'set new range in mc'
+    print '===================='
+    #hr_mc.SetNewRange(20, 40) 
+    #sys.exit()
+    hr_data.Divide(hr_mc)
+
+    print 'I am going to divide'
+    print 'debug this'
+
+
+    #hr_data.Divide(hr_mc)
+    hr_JPsi_SF = hr_data
+    #hr_JPsi_SF.SetNewRange(20, 40) 
+    #hr_DY_SF.setInfo('JPsi SF')         
+    hr_data = None
+
+    #plot and compare the SF
+    hp = HistoPloter('.')
+    hp.setEffRange(0.9, 1.2)
+    hp.PlotEff1D([hr_DY_SF, hr_JPsi_SF])
+    #hp.PlotEff1D([hr_SF_DY])
 
 
    

@@ -16,7 +16,5 @@ class JsonMaker:
         with open ('%s.json'%self.filename, 'w') as f:
             json.dump(data, f, sort_keys = False, indent = 4)
 
-        #with open ('%s.pkl'%self.filename, 'w') as f:
-        #    pickle.dump(list(data), f)
 
 

@@ -6,6 +6,7 @@ from myutils.HistoReader import HistoReader
 from myutils.HistoPloter import HistoPloter
 from myutils.Efficiency import Efficiency
 from myutils.JsonMaker import JsonMaker
+from myutils.RootFileMaker import RootFileMaker
 import sys
 
 #To run ROOT in batch mode
@@ -55,11 +56,13 @@ if __name__ == "__main__":
             DATA_MapList = []
             SFoutputJSONname ='Run%s_%s_%s'%(r,'SF',n)
             jSF = JsonMaker(SFoutputJSONname)
+            rSF = RootFileMaker(SFoutputJSONname)
             for t in Type:
                 #All the rest will be within the json file
                 outputJSONname ='Run%s_%s_%s'%(r,t,n)
                 MapList = []
                 j = JsonMaker(outputJSONname)
+                r_ = RootFileMaker(outputJSONname)
                 for s in NumDic[n]:
                     file_ = '/afs/cern.ch/user/f/fernanpe/public/for_Gael/Efficiencies_2017/Efficiency%s_%s/%s_%sid%s/%s'%(n,r,t.upper(),t,r,s)
                     hr = HistoReader('hr')
@@ -78,12 +81,15 @@ if __name__ == "__main__":
 
                 #For DATA, MC
                 j.makeJSON(MapList)
+                r_.makeROOT(MapList)
 
             #For SF
             for mcm, datam in zip(MC_MapList,DATA_MapList):
+                datam.getTH2D()
                 SF_MapList.append(datam.divideMap(mcm))
 
             jSF.makeJSON(SF_MapList)
+            rSF.makeROOT(SF_MapList)
 
     #########
     #Will contain hr for run BC, DE and F to compute SF on BCDEF
@@ -95,10 +101,12 @@ if __name__ == "__main__":
         DATA_MapList = []
         SFoutputJSONname ='RunBCDEF_%s_%s'%('SF',n)
         jSF = JsonMaker(SFoutputJSONname)
+        rSF = RootFileMaker(SFoutputJSONname)
         for t in Type:
             #All the rest will be within the json file
             outputJSONname ='RunBCDEF_%s_%s'%(t,n)
             j = JsonMaker(outputJSONname)
+            r_ = RootFileMaker(outputJSONname)
             MapList = []
             for s in NumDic[n]:
                 #Contains hr from Run BC, DE and F that will be summed up at the end
@@ -128,9 +136,11 @@ if __name__ == "__main__":
                     DATA_MapList.append(hr0.eff2D)
             #For DATA, MC
             j.makeJSON(MapList)
+            r_.makeROOT(MapList)
 
         #For SF
         for mcm, datam in zip(MC_MapList,DATA_MapList):
             SF_MapList.append(datam.divideMap(mcm))
 
         jSF.makeJSON(SF_MapList)
+        rSF.makeROOT(SF_MapList)

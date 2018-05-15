@@ -1,6 +1,8 @@
 import ROOT
 import json
 import math
+import numpy as np
+import sys
 
 class Eff2DMap:
     '''Contain 2D efficiencies'''
@@ -38,22 +40,20 @@ class Eff2DMap:
                 ystr += '\t'+str(getattr(self,yval)[y][x])
             print ystr
 
-    #def makeJSON(self):
-    #    '''Create Json file from map'''
-    #    data = {}
-    #    par_pair = '%s_%s'%(self.yname,self.xname)
-    #    data[par_pair] = {}
-    #    for y in range(0, len(self.ybins)):
-    #        ypar = '%s:[%.2f,%.2f]'%(self.yname,self.ybins[y][0],self.ybins[y][1])
-    #        data[par_pair][ypar] = {}
-    #        for x in range(0, len(self.xbins)):
-    #            xpar = '%s:[%.2f,%.2f]'%(self.xname, self.xbins[x][0], self.xbins[x][1])
-    #            nom = self.nominal[y][x]
-    #            err = (math.sqrt(self.up[y][x]**2 +self.down[y][x]**2))
-    #            data[par_pair][ypar][xpar] = {'value':nom, 'error':err}
+    def getBinError(self, errup, errdown):
+        '''Estimate error for the json using average from up/down errors. THis is relevant for the efficiency calculation, as the errors for the SF are symmetric'''
+        if errup == -1 and errdown == -1:
+            err = -1
+        else:
+            if not self.sf: 
+                err = (math.sqrt(errup**2 +errdown**2))
+            else: 
+                if not errup == errdown:
+                    print '@ERROR: SF map but self.down != self.up. Aborting'
+                err = errup
 
-    #    with open ('test.txt', 'w') as f:
-    #        json.dump(data, f, sort_keys = False, indent = 4)
+        return err
+
 
     def getJSONdic(self):
         '''Return dictionnary to be written in json file. Used by JsonMaker to make final json file'''
@@ -67,15 +67,16 @@ class Eff2DMap:
                 xpar = '%s:[%.2f,%.2f]'%(self.xname, self.xbins[x][0], self.xbins[x][1])
                 nom = self.nominal[y][x]
                 #case of null value
-                if self.up[y][x] == -1 and self.down[y][x] == -1:
-                    err = -1
-                else:
-                    if not self.sf: 
-                        err = (math.sqrt(self.up[y][x]**2 +self.down[y][x]**2))
-                    else: 
-                        if not self.up[y][x] == self.down[y][x]:
-                            print '@ERROR: SF map but self.down != self.up. Aborting'
-                        err = self.up[y][x]
+                #if self.up[y][x] == -1 and self.down[y][x] == -1:
+                #    err = -1
+                #else:
+                #    if not self.sf: 
+                #        err = (math.sqrt(self.up[y][x]**2 +self.down[y][x]**2))
+                #    else: 
+                #        if not self.up[y][x] == self.down[y][x]:
+                #            print '@ERROR: SF map but self.down != self.up. Aborting'
+                #        err = self.up[y][x]
+                err = self.getBinError(self.up[y][x], self.down[y][x])
                 if nom == -1 and err == -1:
                     data[par_pair][ypar][xpar] = {'value':'null', 'error':'null'}
                     print '@INFO: values for', ypar, 'and', xpar, 'are null. The fit is probably empty'
@@ -83,6 +84,85 @@ class Eff2DMap:
                     data[par_pair][ypar][xpar] = {'value':nom, 'error':err}
 
         return data
+
+    def getTH2D(self):
+        '''Extract 2D map from efficiency. Used to produce .root files containing SF and efficiencies'''
+        # Making the arrays to build the TH2D 
+        #ybins_low   = []
+        #ybins_high  = []
+        #xbins_low   = []
+        #xbins_high  = []
+        ybins = []
+        xbins = []
+        nbinsx      = len(self.xbins)
+        nbinsy      = len(self.ybins)
+
+        for y in range(0, nbinsy):
+
+            #ybins_low.append(self.ybins[y][0])
+            #ybins_high.append(self.ybins[y][1])
+            ybins.append(self.ybins[y][0])
+            if y ==  nbinsy -1:
+                ybins.append(self.ybins[y][1])
+
+        for x in range(0, nbinsx):
+
+            #xbins_low.append(self.xbins[x][0])
+            #xbins_high.append(self.xbins[x][1])
+            xbins.append(self.xbins[x][0])
+            if x ==  nbinsx -1:
+                xbins.append(self.xbins[x][1])
+
+        print '======================='
+        print 'ybins is', ybins
+        print 'xbins is', xbins
+        #print ybins_low
+        #print ybins_high
+        #print xbins_low
+        #print xbins_high
+
+        #ybins_low_  = np.array([i for i in ybins_low],dtype=np.float64)
+        #ybins_high_ = np.array([i for i in ybins_high],dtype=np.float64)
+        #xbins_low_  = np.array([i for i in xbins_low],dtype=np.float64)
+        #xbins_high_ = np.array([i for i in xbins_high],dtype=np.float64)
+
+        xbins_  = np.array([i for i in xbins],dtype=np.float64)
+        ybins_  = np.array([i for i in ybins],dtype=np.float64)
+
+        print 'name is', self.name
+        h2 = ROOT.TH2D(self.name, self.name, nbinsx, xbins_, nbinsy, ybins_)
+        h2.GetXaxis().SetTitle(self.xname)
+        h2.GetYaxis().SetTitle(self.yname)
+
+        #Fill TH2D
+
+        for y in range(0, nbinsy):
+            for x in range(0, nbinsx):
+                #print 'x is', x
+                #print 'y is', y
+                #print 'nominal value is', self.nominal[y][x]
+                h2.SetBinContent(x+1, y+1, self.nominal[y][x])
+                err = self.getBinError(self.up[y][x], self.down[y][x])
+                h2.SetBinError(x+1, y+1, err)
+                    
+        #
+        #Uncomment below for debug 
+        
+        ##Draw the histogram to make sure everything is in order
+        #h2.Sumw2()
+        #c = ROOT.TCanvas('c', 'c')
+        #ROOT.gStyle.SetOptStat(0)
+        #h2.Draw("COLZTEXTE")
+        #c.SaveAs('c.pdf')
+        ##
+
+
+        #h2.SaveAs("h2.root")
+
+        #sys.exit()
+
+        h2.SetOption("COLZTEXTE")
+        return h2
 
     def divideMap(self, effmap):
         '''Return a new map, that is sefl divided by effmap'''

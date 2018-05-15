@@ -18,6 +18,7 @@ class Efficiency:
         self.rooworksp=rooworksp
         self.addFits(hpassing, hfailing, funcfailing, funcpassing)
         self.lumi = None
+        
 
         #dimention of the efficiency
 
@@ -54,64 +55,87 @@ class Efficiency:
     def DivideGraph(self, eff1, eff2):
         '''Return one single TGraphError that is the sum of eff1, and eff2. The sum is lumi-reweighted'''
 
+        gval1 = self.getGraphValue(eff1)
+        gval2 = self.getGraphValue(eff2)
+
+        #print 'gval1 is', gval1
+        #print 'gval2 is', gval2
+
         xbins = []
         xbinsL = [] 
         xbinsH = [] 
         ybins = [] 
         ybinsL = [] 
         ybinsH = [] 
+        
 
-        nbins = eff1.GetN()
-        #if nbins != eff2.GetN():
-        #    print "@ERROR: number of efficiency bin do not match. Cannot sum the Graphs. Aborting"
-        #    sys.exit()
+        for k in range(0, len(gval1[1])):
+            for l in range(0, len(gval2[1])):
+                if gval1[0][k] != gval2[0][l]:
+                    continue
+                else:
+                    x = (gval1[0][k] + gval1[0][k+1])/2
+                    xl = gval1[0][k+1] -x
+                    xh = xl
 
-        #note: current fix only works if all missing pt bins are in high pT
-        bins = range(0,max(nbins,eff2.GetN()))
-        #bins = range(0,nbins)
-        new_nbins = 0
-        for bin_ in bins:
-            print 'bin is', bin_
-            #x1, x2 = ROOT.Double(999), ROOT.Double(999)
-            x, x2 = ROOT.Double(999), ROOT.Double(999)
-            y1, y2 = ROOT.Double(999), ROOT.Double(999)
+                    y1  = gval1[1][k]
+                    y1l = gval1[2][k]
+                    y1h = gval1[3][k]
+                    y2  = gval2[1][l]
+                    y2l = gval2[2][l]
+                    y2h = gval2[3][l]
 
-            filled1 = eff1.GetPoint(bin_, x, y1)
-            filled2 = eff2.GetPoint(bin_, x2, y2) 
+                    if not y2 == 0:
+                        y = y1/y2
+                        err_up1 = y1h/y2
 
-            if filled1  == -1 or filled2 == -1:
-                y_hi1, y_hi2    = 0,0
-                y_low1, y_low2  = 0,0
-                y1, y2 = 0, 1
+                        #if not y2l == 0:
+                        #    err_up2 = y1/y2l
+                        #else: err_up2 = 0
 
-                if filled1 != -1:
-                    x_hi = eff1.GetErrorXhigh(bin_)
-                    x_low = eff1.GetErrorXlow(bin_)
-                elif filled2 != -1:
-                    x_hi = eff2.GetErrorXhigh(bin_)
-                    x_low = eff2.GetErrorXlow(bin_)
-                else: continue
+                        #err_d1 = y1l/y2
 
-            else:
-                y_hi1, y_hi2    = eff1.GetErrorYhigh(bin_),eff2.GetErrorYhigh(bin_),
-                y_low1, y_low2  = eff1.GetErrorYlow(bin_), eff2.GetErrorYlow(bin_),
-                x_hi = eff1.GetErrorXhigh(bin_)
-                x_low = eff1.GetErrorXlow(bin_)
-                x_hi2 = eff2.GetErrorXhigh(bin_)
-                x_low2 = eff2.GetErrorXlow(bin_)
+                        #if not y2h == 0:
+                        #    err_d2 = y1/y2h
+                        #else: err_d2 = 0
+                        #yL = math.sqrt(err_up1**2 + err_up2**2)
+                        #yH = math.sqrt(err_d1**2 + err_d2**2)
+                        err_up1 = (y1 + y1h)/y2 - y
+                        err_up2 = (y1)/(y2-y2l) - y 
+                        err_d1 = (y1 - y1l)/y2 - y
+                        err_d2 = (y1)/(y2+y2h) - y
+                        yH = math.sqrt(err_up1**2 + err_up2**2)
+                        yL = math.sqrt(err_d1**2 + err_d2**2)
+                        #yL = math.sqrt((y1l/y2)**2 +(y1*y1l/y2*y2)**2)
+                        #yH = math.sqrt((y1h/y2)**2 +(y1*y1h/(y2*y2))**2)
+                    else:
+                        y = 0
+                        yL = 0
+                        yH = 0
 
+                    if x > 30:
+                        print 'y1', y1  
+                        print 'y1l', y1l
+                        print 'y1h', y1h
+                        print 'y2', y2 
+                        print 'y2l', y2l 
+                        print 'y2h', y2h
+                        print 'y1 is', y1
+                        print 'y2 is', y2
+                        print 'y is ', y
+                        print 'err_up1',err_up1
+                        print 'err_up2',err_up2
+                        print 'err_d1',err_d1
+                        print 'err_d2',err_d2
 
-            xbins.append(x)
-            xbinsL.append(x_low)
-            xbinsH.append(x_hi)
-            ybins.append(y1/y2)
-            ybinsL.append(math.sqrt((y_low1/y2)**2+(y1*y_low2/(y2*y2))**2))
-            ybinsH.append(math.sqrt((y_hi1/y2)**2+(y1*y_hi2/(y2*y2))**2))
-            new_nbins += 1
+                xbins.append(x)
+                xbinsL.append(xl)
+                xbinsH.append(xh)
+                ybins.append(y)
+                ybinsL.append(yL)
+                ybinsH.append(yH)
+                break
 
-        print 'finish the loop'
-
-        #Set all the bins to create new function 
         xbins_ =    np.array([i for i in xbins],dtype=np.float64)
         xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
         xbinsH_ =   np.array([i for i in xbinsH],dtype=np.float64)
@@ -119,8 +143,129 @@ class Efficiency:
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
 
-        new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        print 'bin information after the division'
+        print xbins_ 
+        print ybins_ 
+        #print ybinsL_ 
+        #print ybinsH_ 
+
+
+        new_gr = ROOT.TGraphAsymmErrors(len(xbins_), xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        print 'finshed to divide the graph'
         return new_gr
+
+
+
+            #for x2 in gval2:
+            #    if not x2[0] == x1[0]:
+            #        continue
+            #    else: 
+            #        xbins.append(x1)
+            #        xbinsL = [] 
+            #        xbinsH = [] 
+                
+        #for x1, x2 in zip(gval1[0], gval2[0]):
+
+
+
+        #sys.exit()
+
+        #xbins = []
+        #xbinsL = [] 
+        #xbinsH = [] 
+        #ybins = [] 
+        #ybinsL = [] 
+        #ybinsH = [] 
+
+        ##note: current fix only works if all missing pt bins are in high pT
+        #bins = range(0,max(nbins,eff2.GetN()))
+        ##bins = range(0,nbins)
+        #new_nbins = 0
+        #for bin_ in bins:
+        #    print 'bin is', bin_
+        #    #x1, x2 = ROOT.Double(999), ROOT.Double(999)
+        #    x, x2 = ROOT.Double(999), ROOT.Double(999)
+        #    y1, y2 = ROOT.Double(999), ROOT.Double(999)
+
+        #    filled1 = eff1.GetPoint(bin_, x, y1)
+        #    filled2 = eff2.GetPoint(bin_, x2, y2) 
+
+        #    if filled1  == -1 or filled2 == -1:
+        #        y_hi1, y_hi2    = 0,0
+        #        y_low1, y_low2  = 0,0
+        #        y1, y2 = 0, 1
+
+        #        if filled1 != -1:
+        #            x_hi = eff1.GetErrorXhigh(bin_)
+        #            x_low = eff1.GetErrorXlow(bin_)
+        #        elif filled2 != -1:
+        #            x_hi = eff2.GetErrorXhigh(bin_)
+        #            x_low = eff2.GetErrorXlow(bin_)
+        #        else: continue
+
+        #    else:
+        #        y_hi1, y_hi2    = eff1.GetErrorYhigh(bin_),eff2.GetErrorYhigh(bin_),
+        #        y_low1, y_low2  = eff1.GetErrorYlow(bin_), eff2.GetErrorYlow(bin_),
+        #        x_hi = eff1.GetErrorXhigh(bin_)
+        #        x_low = eff1.GetErrorXlow(bin_)
+        #        x_hi2 = eff2.GetErrorXhigh(bin_)
+        #        x_low2 = eff2.GetErrorXlow(bin_)
+
+
+        #    xbins.append(x)
+        #    xbinsL.append(x_low)
+        #    xbinsH.append(x_hi)
+        #    ybins.append(y1/y2)
+        #    ybinsL.append(math.sqrt((y_low1/y2)**2+(y1*y_low2/(y2*y2))**2))
+        #    ybinsH.append(math.sqrt((y_hi1/y2)**2+(y1*y_hi2/(y2*y2))**2))
+        #    new_nbins += 1
+
+        #print 'finish the loop'
+
+        ##Set all the bins to create new function 
+        #xbins_ =    np.array([i for i in xbins],dtype=np.float64)
+        #xbinsL_ =   np.array([i for i in xbinsL],dtype=np.float64)
+        #xbinsH_ =   np.array([i for i in xbinsH],dtype=np.float64)
+        #ybins_ =    np.array([i for i in ybins],dtype=np.float64)
+        #ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
+        #ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
+
+        #new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        #return new_gr
+
+    def getGraphValue(self, gr):
+        '''Read TGraph and returns all values'''
+
+        xbinsL = [] 
+        ybins = [] 
+        ybinsL = [] 
+        ybinsH = [] 
+
+        nbins = gr.GetN()
+        bins = range(0,nbins)
+        new_nbins = 0
+
+        for bin_ in bins:
+            x = ROOT.Double(999)
+            y = ROOT.Double(999)
+            gr.GetPoint(bin_,x,y)
+            x_hi = gr.GetErrorXhigh(bin_)
+            x_low = gr.GetErrorXlow(bin_)
+            y_hi = gr.GetErrorYhigh(bin_)
+            y_low = gr.GetErrorYlow(bin_)
+
+            xbinsL.append(x - x_low)
+            if bin_ == bins[-1]: 
+                xbinsL.append(x + x_hi)
+            ybins.append(y)
+            #print 'x is', x
+            #print 'y is', y
+            ybinsL.append(y_low)
+            ybinsH.append(y_hi)
+
+            new_nbins += 1
+
+        return [xbinsL, ybins, ybinsL, ybinsH] 
 
     def AddGraph(self, eff1, eff2, lumi1, lumi2):
 
@@ -192,7 +337,9 @@ class Efficiency:
         bins = range(0,nbins)
         new_nbins = 0
 
+        print 'going to run over the bins'
         for bin_ in bins:
+            print 'bin is', bin_
             x = ROOT.Double(999)
             y = ROOT.Double(999)
             gr.GetPoint(bin_,x,y)
@@ -213,6 +360,7 @@ class Efficiency:
             ybinsL.append(y_low)
             ybinsH.append(y_hi)
             new_nbins += 1
+        print 'finished to run over the bins'
 
         if error_threshold:
             ybinsL_ER= []
@@ -274,8 +422,13 @@ class Efficiency:
         ybinsL_ =   np.array([i for i in ybinsL],dtype=np.float64)
         ybinsH_ =   np.array([i for i in ybinsH],dtype=np.float64)
 
+        #if xbins_ = []
 
+
+        print 'going to make the new graph'
+        print 'xbins_ is', xbins_
         new_gr = ROOT.TGraphAsymmErrors(new_nbins, xbins_, ybins_, xbinsL_, xbinsH_, ybinsL_, ybinsH_)
+        print 'going to return the new graph'
         return new_gr
 
     def SetNewRange(self, xmin, xmax):
