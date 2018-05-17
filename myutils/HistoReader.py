@@ -206,9 +206,8 @@ class HistoReader:
             key = nextkey.Next()
 
         #Make 2D map to store the efficiency
-        #if not self.ylist == None:
-        #    self.Make2DMap()
-        #sys.exit()
+        if not self.ylist == None:
+            self.Make2DMap()
         file.Close()
 
     def getBinNumber(self, s):
@@ -370,38 +369,94 @@ class HistoReader:
             eff2D.ybins.append([y0,y1])
 
         ##Read 1D eff one by one to fill the 2D map
-        eff2D.xbins = []
+        # create x range. 
+        xbins_ = []
         for eff in self.EffList:
             grVal = self.getGraphValue(eff.heff)
+            #print 'grVal[0] is', grVal[0]
+            #eff2D.nominal.append(grVal[1]) #adding ybins
+            #eff2D.down.append(grVal[2]) #adding ybinsL
+            #eff2D.up.append(grVal[3]) #adding ybinsH
 
-            eff2D.nominal.append(grVal[1]) #adding ybins
-            eff2D.down.append(grVal[2]) #adding ybinsL
-            eff2D.up.append(grVal[3]) #adding ybinsH
+            if eff == self.EffList[0]:
+                xbins_ = grVal[0]
+            # in case some of the x bins where missing (for example, empty pt bins), scan the other 1D distribution to recover missing x-bins
+            else:
+                for x in grVal[0]:
+                    if not x in xbins_:
+                        xbins_.append(x)
 
-            xbins_new = []
-            for x0, x1 in zip(grVal[0][:-1],grVal[0][1:]):
-                #eff2D.xbins.append([x0,x1])
-                xbins_new.append([x0,x1])
-            if len(xbins_new) >= len(eff2D.xbins):
-                eff2D.xbins = xbins_new
+        eff2D.xbins = sorted(xbins_)
 
+        print 'eff2D.xbins is', eff2D.xbins
+        #sys.exit()
+        #
+        #eff2D.xbins = []
+        for eff in self.EffList:
+            # to fill the y bins in the map
+            ybins = []
+            ybinsL = []
+            ybinsH = []
+
+            grVal = self.getGraphValue(eff.heff)
+            for xi in range(0, len(eff2D.xbins)):
+                if eff2D.xbins[xi] in grVal[0]:
+                    index = grVal[0].index(eff2D.xbins[xi])
+                    if index >= len(grVal[0]) -1:
+                        ybins.append(-1)
+                        ybinsL.append(0)
+                        ybinsH.append(0)
+                    else: 
+                    #print 'index is', index
+                    #print 'grVal[1] is', grVal[1]
+                        ybins.append(grVal[1][index])
+                        ybinsL.append(grVal[2][index])
+                        ybinsH.append(grVal[3][index])
+                else: 
+                    ybins.append(-1)
+                    ybinsL.append(0)
+                    ybinsH.append(0)
+
+            eff2D.nominal.append(ybins) #adding ybins
+            eff2D.down.append(ybinsL) #adding ybinsL
+            eff2D.up.append(ybinsH) #adding ybinsH
+            #eff2D.nominal.append(grVal[1]) #adding ybins
+            #eff2D.down.append(grVal[2]) #adding ybinsL
+            #eff2D.up.append(grVal[3]) #adding ybinsH
+
+            #make xbins as pair (up, down)
+        xbins_new = []
+        for x0, x1 in zip(eff2D.xbins[:-1], eff2D.xbins[1:]):
+            xbins_new.append([x0,x1])
+        eff2D.xbins = xbins_new
+
+        #xbins_new = []
+        #for x0, x1 in zip(grVal[0][:-1],grVal[0][1:]):
+        #    xbins_new.append([x0,x1])
+        #if len(xbins_new) >= len(eff2D.xbins):
+        #    eff2D.xbins = xbins_new
+
+        print eff2D.xbins
+        #sys.exit()
+
+        #sys.exit()
         ##File parameter name
         eff2D.xname = self.xparname
         eff2D.yname = self.yparname
-        self.CleanMissingValues(eff2D)
+        #self.CleanMissingValues(eff2D)
 
         self.eff2D = eff2D
 
-    def CleanMissingValues(self, Map2D):
-        '''In case the fit was empty in some particluar bins in a 2D map, replace those values by 0'''
-        for y in range(0,len(Map2D.ybins)):
-            for x in range(0,len(Map2D.xbins)):
-                if len(Map2D.nominal[y]) <= x: 
-                    Map2D.nominal[y].append(-1)
-                    Map2D.down[y].append(-1)
-                    Map2D.up[y].append(-1)
-        return Map2D
-                #print 'will print all the bins'
+    #def CleanMissingValues(self, Map2D):
+    #    '''In case the fit was empty in some particluar bins in a 2D map, replace those values by 0'''
+    #    for y in range(0,len(Map2D.ybins)):
+    #        for x in range(0,len(Map2D.xbins)):
+    #            if len(Map2D.nominal[y]) <= x: 
+    #                Map2D.nominal[y].append(-1)
+    #                Map2D.down[y].append(-1)
+    #                Map2D.up[y].append(-1)
+    #    return Map2D
+    #            #print 'will print all the bins'
 
     def getGraphValue(self, gr):
         '''Read TGraph and returns all values'''

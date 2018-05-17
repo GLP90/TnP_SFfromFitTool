@@ -77,7 +77,7 @@ class Eff2DMap:
                 #            print '@ERROR: SF map but self.down != self.up. Aborting'
                 #        err = self.up[y][x]
                 err = self.getBinError(self.up[y][x], self.down[y][x])
-                if nom == -1 and err == -1:
+                if nom == -1 or err == -1:
                     data[par_pair][ypar][xpar] = {'value':'null', 'error':'null'}
                     print '@INFO: values for', ypar, 'and', xpar, 'are null. The fit is probably empty'
                 else:
@@ -130,20 +130,23 @@ class Eff2DMap:
         ybins_  = np.array([i for i in ybins],dtype=np.float64)
 
         print 'name is', self.name
-        h2 = ROOT.TH2D(self.name, self.name, nbinsx, xbins_, nbinsy, ybins_)
+        h2 = ROOT.TH2D('%s_%s_%s'%(self.name, self.xname, self.yname), '%s_%s_%s'%(self.name, self.xname, self.yname), nbinsx, xbins_, nbinsy, ybins_)
         h2.GetXaxis().SetTitle(self.xname)
         h2.GetYaxis().SetTitle(self.yname)
 
         #Fill TH2D
-
         for y in range(0, nbinsy):
             for x in range(0, nbinsx):
                 #print 'x is', x
                 #print 'y is', y
                 #print 'nominal value is', self.nominal[y][x]
-                h2.SetBinContent(x+1, y+1, self.nominal[y][x])
-                err = self.getBinError(self.up[y][x], self.down[y][x])
-                h2.SetBinError(x+1, y+1, err)
+                value = self.nominal[y][x]
+
+                # empty bins are not filled
+                if not value == -1:
+                    h2.SetBinContent(x+1, y+1, value)
+                    err = self.getBinError(self.up[y][x], self.down[y][x])
+                    h2.SetBinError(x+1, y+1, err)
                     
         #
         #Uncomment below for debug 
