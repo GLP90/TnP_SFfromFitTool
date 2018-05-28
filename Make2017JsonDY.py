@@ -72,16 +72,6 @@ if __name__ == "__main__":
                     hr.CleanBigError(0.01)  
                     hr.setType(t)      
                     MapList.append(hr.eff2D)
-                    #print '==========='
-                    #print hr.eff2D.name
-                    #print s
-                    #print r
-                    #print t
-                    #print '==========='
-                    #hr.eff2D.Print('nominal')
-                    #hr.eff2D.Print('up')
-                    #hr.eff2D.Print('down')
-                    #sys.exit()
 
                     #For SF
                     if t == 'mc':
