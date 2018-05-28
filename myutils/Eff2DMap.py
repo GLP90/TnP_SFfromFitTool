@@ -49,7 +49,7 @@ class Eff2DMap:
             err = -1
         else:
             if not self.sf: 
-                err = (math.sqrt(errup**2 +errdown**2))
+                err = 1./(math.sqrt(2))*(math.sqrt(errup**2 +errdown**2))
             else: 
                 if not errup == errdown:
                     print '@ERROR: SF map but self.down != self.up. Aborting'
