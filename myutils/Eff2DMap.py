@@ -71,7 +71,7 @@ class Eff2DMap:
                 nom = self.nominal[y][x]
                 err = self.getBinError(self.up[y][x], self.down[y][x])
                 if nom == -1 or err == -1:
-                    data[par_pair][ypar][xpar] = {'value':'null', 'error':'null'}
+                    data[par_pair][ypar][xpar] = {'value':1, 'error':0}
                     print '@INFO: values for', ypar, 'and', xpar, 'are null. The fit is probably empty'
                 else:
                     data[par_pair][ypar][xpar] = {'value':nom, 'error':err}
@@ -135,11 +135,18 @@ class Eff2DMap:
                 #print 'nominal value is', self.nominal[y][x]
                 value = self.nominal[y][x]
 
-                # empty bins are not filled
-                if not value == -1:
-                    h2.SetBinContent(x+1, y+1, value)
-                    err = self.getBinError(self.up[y][x], self.down[y][x])
-                    h2.SetBinError(x+1, y+1, err)
+                ## empty bins are not filled
+                #if not value == -1:
+                #    h2.SetBinContent(x+1, y+1, value)
+                #    err = self.getBinError(self.up[y][x], self.down[y][x])
+                #    h2.SetBinError(x+1, y+1, err)
+
+                err = self.getBinError(self.up[y][x], self.down[y][x])
+                if value == -1: 
+                    value = 1
+                    err = 0
+                h2.SetBinContent(x+1, y+1, value)
+                h2.SetBinError(x+1, y+1, err)
                     
         #
         #Uncomment below for debug 
